@@ -2,7 +2,8 @@
     <div class="topStyle">
         <div style="margin-left:20%">
             <b-button @click="alertClicked" style="margin:1%; width:15%" variant="primary">Alert</b-button>
-            <b-button style="margin:1%; width:15%" variant="secondary">Secondary</b-button>
+            <b-button @click="showParametersPopup = true" style="margin:1%; width:15%" variant="secondary">Parameters</b-button>
+            <Parameters v-if="showParametersPopup" @close="closeParameters"></Parameters> <!-- Quan es clicki el boto de close, Parameters.vue fara la funció close, quan aixo passi @close, aqui s'executara la funcio closeParameters -->
             <b-button style="margin:1%; width:15%" variant="success">Success</b-button>
             <b-button style="margin:1%; width:15%" variant="danger">Danger</b-button>
         </div>
@@ -21,10 +22,17 @@ import { defineComponent, ref, inject } from 'vue' // ref per les variables que 
 // https://www.npmjs.com/package/vue-sweetalert2
 import Swal from 'sweetalert2'
 
+// importar els components
+import Parameters from './Parameters.vue'
+
 export default defineComponent({
+    components:{
+        Parameters
+    },
     setup () {
         let username = ref(undefined);
         let age = ref(undefined);
+        let showParametersPopup = ref(false);
         const emitter = inject('emitter');   // Inject `emitter` que hem creat al main.ts
         function alertClicked(){
             Swal.fire('Alert Clicked')
@@ -35,12 +43,17 @@ export default defineComponent({
             username.value = undefined;
             age.value = undefined;
         }
+        function closeParameters(){
+            showParametersPopup.value = false;
+        }
 
         return {
             alertClicked,
             username,
             age,
-            InputUsername
+            InputUsername,
+            showParametersPopup,
+            closeParameters
         }
     }
 })
