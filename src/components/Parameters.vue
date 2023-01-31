@@ -1,21 +1,93 @@
 <template>
     <div class="popup">
         <div class="popup-inner">
-            Parameters
-            <b-button style="width:20%, margin-left:10%" @click="close" variant="danger" size="lg">Close</b-button>
+
+            <h1 style="text-align:center; margin-bottom: 5%">Parameters</h1>
+            <div>
+                <b-form-group
+                    label="Name:"
+                    label-for="input-1">
+                    <b-form-input v-model="name"></b-form-input>
+                </b-form-group>
+
+                <b-input-group style="width:80%; margin-left:10%">
+                    <b-form-input v-model="speed" type="range" min="0" max="100"></b-form-input>
+                    <h4>Speed: {{ speed }}</h4>
+                </b-input-group>
+
+                <div style="display:flex">
+
+                    <div style="width: 45%; margin: 1%"> 
+                        <b-card bg-variant="light">
+                            <b-form-group label="Radios using options" label-align-sm="right" v-slot="{ ariaDescribedby }">
+                                <b-form-radio-group
+                                    class="pt-2"
+                                    v-model="radioButtonSelected" 
+                                    :options="['A','B','C']"
+                                    :aria-describedby="ariaDescribedby"
+                                ></b-form-radio-group> <!-- radioButtonSelected indica quin dels tres ha estat seleccionat -->
+                            </b-form-group>
+                        </b-card>
+                    </div>
+
+                    <div style="width: 45%; margin: 1%; margin-left: 3%"> 
+                        <b-card bg-variant="light" inline>
+                            <b-form-group label="Checkbox options:" v-slot="{ ariaDescribedby }">
+                                <b-form-checkbox-group
+                                    v-model="checkBoxSelected"
+                                    :options="checkBoxOptions"
+                                    :aria-describedby="ariaDescribedby"
+                                ></b-form-checkbox-group>
+                             </b-form-group>
+                        </b-card>
+                    </div>
+
+                </div>
+
+            </div>
+            
+            <b-button style="width:30%; margin-left:10%" @click="writeParameters" variant="warning" size="lg">Send Parameters</b-button>
+            <b-button style="width:20%; margin-left:20%" @click="close" variant="danger" size="lg">Close</b-button>
         </div>
     </div>
 </template>
 
 <script>
+
+import { ref } from 'vue'
+
 export default {
     setup (props, context) {
+        let name = ref(undefined);
+        let speed = ref(undefined);
+        let radioButtonSelected = ref(undefined);
+        let checkBoxOptions= ref ( [
+          { text: 'Orange', value: 'orange' },
+          { text: 'Apple', value: 'apple' },
+          { text: 'Pineapple', value: 'pineapple' },
+          { text: 'Grape', value: 'grape'},
+         { text: 'Otro', value: 'otro'}
+        ]);
+        let checkBoxSelected = ref(undefined);
+
         function close(){
             context.emit('close'); // el context es passa com a parametre del setup
         }
+        function writeParameters(){
+            console.log("Name: ", name.value);
+            console.log("Speed: ", speed.value);
+            console.log("Radio Button: ", radioButtonSelected.value);
+            console.log("Checkbox: ", checkBoxSelected.value);
+        }
 
         return {
-            close
+            close,
+            writeParameters,
+            name,
+            speed,
+            radioButtonSelected,
+            checkBoxOptions,
+            checkBoxSelected
         }
     }
 }
