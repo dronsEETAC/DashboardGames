@@ -1,7 +1,7 @@
 <template>
     <div class="topStyle">
         <div style="margin-left:20%">
-            <b-button @click="primaryClicked" style="margin:1%; width:15%" variant="primary">Primary</b-button>
+            <b-button @click="alertClicked" style="margin:1%; width:15%" variant="primary">Alert</b-button>
             <b-button style="margin:1%; width:15%" variant="secondary">Secondary</b-button>
             <b-button style="margin:1%; width:15%" variant="success">Success</b-button>
             <b-button style="margin:1%; width:15%" variant="danger">Danger</b-button>
@@ -16,24 +16,28 @@
     </div>
 </template>
 
-<script lang="ts">
-import { defineComponent, ref } from 'vue'
+<script> // treiem la etiqueta lang="ts" pk no es queixi dels tipus de typescript
+import { defineComponent, ref, inject } from 'vue' // ref per les variables que canvien, inject per 
+// https://www.npmjs.com/package/vue-sweetalert2
+import Swal from 'sweetalert2'
 
 export default defineComponent({
     setup () {
         let username = ref(undefined);
         let age = ref(undefined);
-        function primaryClicked(){
-            console.log("Primary clicked")
+        const emitter = inject('emitter');   // Inject `emitter` que hem creat al main.ts
+        function alertClicked(){
+            Swal.fire('Alert Clicked')
         }
         function InputUsername(){
-            console.log("name: ", username.value, " age: ", age.value);
+            console.log("name: ", username.value, " age: ", age.value);            
+            emitter.emit('newUser', {'name':username.value, 'age':age.value}); // objecte json
             username.value = undefined;
-            username.value = undefined;
+            age.value = undefined;
         }
 
         return {
-            primaryClicked,
+            alertClicked,
             username,
             age,
             InputUsername
