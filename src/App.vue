@@ -11,8 +11,8 @@
   </div>  
 </template>
 
-<script lang="ts">
-import { defineComponent, ref } from 'vue';
+<script>
+import { defineComponent, ref, inject } from 'vue';
 import Top from './components/Top.vue';
 import Left from './components/Left.vue';
 import Right from './components/Right.vue';
@@ -28,12 +28,17 @@ export default defineComponent({
   },
   setup () {
     let connected = ref(false)
+    let client = inject('mqttClient')
     function toggle(){
       connected.value = !connected.value;
+      if(connected.value){
+        client.publish("Connect",""); // enviem la publicació amb el topic connect i el payload buit
+      }
     }    
     return{
       toggle,
-      connected
+      connected,
+      client
     }
   }
 });

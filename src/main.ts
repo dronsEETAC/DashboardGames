@@ -17,8 +17,24 @@ import 'bootstrap-icons/font/bootstrap-icons.css'
 import mitt from 'mitt';                  // Import mitt
 const emitter = mitt();                   // Initialize mitt
 
+// https://www.emqx.com/en/blog/how-to-use-mqtt-in-vue
+import mqtt, { MqttClient } from 'mqtt'
+
 const app = createApp(App)
 app.use(BootstrapVue3)
 app.use(BootstrapVueIcons)
+
+let client: MqttClient
+try{
+    client = mqtt.connect('mqtt://localhost:9042') //proba a connectar-se
+    client.on('connect', () => { //si el commando que rep es 'connect', s'ha connectat bé
+        console.log("Connection succeeded!");
+        app.provide('mqttClient', client); // com s'ha connectet proveim el client als altres components pk el puguin utilitzar
+    })
+}
+catch(error){
+    console.log("mqtt.connect error ", error);
+}
+
 app.provide('emitter', emitter);          // permet a tots els components accedir a aquell emisor
 app.mount('#app')

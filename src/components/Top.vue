@@ -1,10 +1,11 @@
 <template>
     <div class="topStyle">
-        <div style="margin-left:20%">
+        <div style="display:flex; margin-left:20%">
             <b-button @click="alertClicked" style="margin:1%; width:15%" variant="primary">Alert</b-button>
             <b-button @click="showParametersPopup = true" style="margin:1%; width:15%" variant="secondary">Parameters</b-button>
             <Parameters v-if="showParametersPopup" @close="closeParameters"></Parameters> <!-- Quan es clicki el boto de close, Parameters.vue fara la funció close, quan aixo passi @close, aqui s'executara la funcio closeParameters -->
-            <b-button style="margin:1%; width:15%" variant="success">Success</b-button>
+            <b-button @click="getValue" style="margin:1%; width:15%" variant="success">Get Value</b-button>
+            <b-form-input style = "width:8%; margin-top:1%" disabled = "True" v-model="value" size="lg"></b-form-input> <!-- disabled pk no es pugui escriure -->
             <b-button style="margin:1%; width:15%" variant="danger">Danger</b-button>
         </div>
         <b-input-group prepend="New user" style="width:50%; margin-left: 22%; margin-top: 1%">
@@ -18,7 +19,7 @@
 </template>
 
 <script> // treiem la etiqueta lang="ts" pk no es queixi dels tipus de typescript
-import { defineComponent, ref, inject } from 'vue' // ref per les variables que canvien, inject per 
+import { defineComponent, ref, inject, onMounted } from 'vue' // ref per les variables que canvien, inject per 
 // https://www.npmjs.com/package/vue-sweetalert2
 import Swal from 'sweetalert2'
 
@@ -33,7 +34,18 @@ export default defineComponent({
         let username = ref(undefined);
         let age = ref(undefined);
         let showParametersPopup = ref(false);
+        let value = ref(undefined);
+        let client = inject('mqttClient');
         const emitter = inject('emitter');   // Inject `emitter` que hem creat al main.ts
+
+        onMounted(() => { // quan es crei ("monti") aquest component, s'executarà la funcio
+            client.on('message', (topic,message) => { // en el caso de que se reciba un message
+                if(topic == "Value"){
+                    value.value = message;
+                }
+            })
+        }) 
+      
         function alertClicked(){
             Swal.fire('Alert Clicked')
         }
@@ -46,14 +58,21 @@ export default defineComponent({
         function closeParameters(){
             showParametersPopup.value = false;
         }
+        function getValue(){
+            client.publish("getValue","")
+            client.subscribe("Value") // ens hem de subscriure a la resposta amb topic value
+        }
 
         return {
-            alertClicked,
+            alertClicked,            
+            InputUsername,            
+            closeParameters,
+            getValue,
             username,
             age,
-            InputUsername,
             showParametersPopup,
-            closeParameters
+            value,
+            client
         }
     }
 })

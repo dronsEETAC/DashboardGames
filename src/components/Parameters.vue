@@ -54,7 +54,9 @@
 
 <script>
 
-import { ref } from 'vue'
+import Swal from 'sweetalert2'
+
+import { ref, inject} from 'vue'
 
 export default {
     setup (props, context) {
@@ -69,6 +71,7 @@ export default {
          { text: 'Otro', value: 'otro'}
         ]);
         let checkBoxSelected = ref(undefined);
+        let client = inject('mqttClient');
 
         function close(){
             context.emit('close'); // el context es passa com a parametre del setup
@@ -78,6 +81,31 @@ export default {
             console.log("Speed: ", speed.value);
             console.log("Radio Button: ", radioButtonSelected.value);
             console.log("Checkbox: ", checkBoxSelected.value);
+            // enviem un JSON amb els parametres
+            const parameters = {
+                checkBoxSelected: checkBoxSelected.value,
+                radioButtonSelected: radioButtonSelected.value,
+                name: name.value,
+                speed: speed.value
+            }           
+
+            Swal.fire({
+                title: "Write parameters?",
+                text: "Are you sure? You won't be able to revert this!",
+                type: "warning",
+                showCancelButton: true,
+                confirmButtonColor: "#3085d6",
+                confirmButtonText: "Yes, write parameters!"
+            }).then((result)=>{
+                if(result.value){ //confirmed
+                    let message = JSON.stringify(parameters);
+                    client.publish("writeParameters",message);
+                    Swal.fire('Done!');
+                    context.emit('close') 
+                }
+            })
+
+            
         }
 
         return {
@@ -87,7 +115,8 @@ export default {
             speed,
             radioButtonSelected,
             checkBoxOptions,
-            checkBoxSelected
+            checkBoxSelected,
+            client
         }
     }
 }
