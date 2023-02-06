@@ -31,9 +31,9 @@ export default defineComponent({
     let client = inject('mqttClient')
     function toggle(){
       connected.value = !connected.value;
-      if(connected.value){
-        client.publish("Connect",""); // enviem la publicació amb el topic connect i el payload buit
-      }
+      // if(connected.value){
+      //  client.publish("Connect",""); // enviem la publicació amb el topic connect i el payload buit
+      // }
     }    
     return{
       toggle,

@@ -29,6 +29,7 @@ try{
     client = mqtt.connect('mqtt://localhost:9042') //proba a connectar-se
     client.on('connect', () => { //si el commando que rep es 'connect', s'ha connectat bé
         console.log("Connection succeeded!");
+        client.publish("Connect","");
         app.provide('mqttClient', client); // com s'ha connectet proveim el client als altres components pk el puguin utilitzar
     })
 }
