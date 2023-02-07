@@ -9,8 +9,10 @@
                 </div>
             </div>  
             <div style="display:flex; margin-left:20%"> 
-                <b-button style="width:20%; margin-left:20%" @click="clear" variant="warning" size="lg">Clear</b-button>
-                <b-button style="width:20%; margin-left:20%" @click="close" variant="danger" size="lg">Close</b-button>  
+                <b-button style="width:20%; margin-left:1%; margin-top:5%" @click="load" variant="primary" size="lg">Load</b-button>
+                <b-button style="width:20%; margin-left:1%; margin-top:5%" @click="save" variant="info" size="lg">Save</b-button>
+                <b-button style="width:20%; margin-left:1%; margin-top:5%" @click="clear" variant="warning" size="lg">Clear</b-button>
+                <b-button style="width:20%; margin-left:1%; margin-top:5%" @click="close" variant="danger" size="lg">Close</b-button>  
             </div>
                       
         </div>
@@ -21,6 +23,9 @@
 <script>
 import {ref, onMounted } from 'vue'
 import leaflet from 'leaflet'
+// https://medium.com/spemer/using-axios-in-vue-js-17f186756a8b
+import axios from 'axios'
+import Swal from 'sweetalert2'
 
 export default {
     setup (props,context) {
@@ -62,18 +67,24 @@ export default {
                 let last = waypoints.value[waypoints.value.length-1]; //agafo l'ultim waypoint
                 let distance = last.distanceTo(e.latlng).toFixed(0)/1000;
                 let midpoint = new leaflet.LatLng((last.lat + e.latlng.lat)/2, (last.lng + e.latlng.lng)/2); //punt mig entre dos waypoints
-                leaflet.marker(midpoint, {opacity:0.01}).addTo(map).bindTooltip(distance.toString(),  { // opacitat baixa pk el marcador no es vegi
+                let wp = leaflet.marker(midpoint, {opacity:0.01}).addTo(map).bindTooltip(distance.toString(),  { // opacitat baixa pk el marcador no es vegi
                             permanent: true,
                             direction: 'center',
                             className: "my_labels"
                          }); //distancia entre waypoints
+                //utilitzar per a moure linees amb waypoint
+                /* wp.on('dragend', function(event){ 
+                    var marker = event.target;
+                    var position = marker.getLatLng();
+                    console.log ('moving to ', position)
+                }); */
             }     
 
             waypoints.value.push(e.latlng);
             if (waypoints.value.length > 1){ // quan estigui al segon waypoint    
                 leaflet.polyline(waypoints.value, {color: 'red'}).addTo(map);
             }
-            leaflet.marker(e.latlng).addTo(map).bindTooltip(count.toString(),  {
+            leaflet.marker(e.latlng, {draggable:true}).addTo(map).bindTooltip(count.toString(),  {
                             permanent: true,
                             direction: 'center',
                             className: "my_labels"
@@ -115,12 +126,50 @@ export default {
             });
         }
 
+        function save(){
+
+            Swal.fire({
+                title: "Save flight plan?",
+                text: "Are you sure? You won't be able to revert this!",
+                type: "warning",
+                showCancelButton: true,
+                confirmButtonColor: "#3085d6",
+                confirmButtonText: "Yes, save flight plan!"
+            }).then((result)=>{
+                if(result.value){ //confirmed
+                    let data = JSON.stringify(waypoints.value);
+                    axios.post("http://localhost:4000/data",data,{
+                        headers: {
+                            "Content-type":"application/json"
+                        }
+                    }).then(response => {
+                        Swal.fire('Done!');
+                        context.emit('close')
+                    });                    
+                }
+            })
+        }
+
+        function load(){
+            axios.get("http://localhost:4000/data").then(response => {
+                let n = response.data.length;
+                if(n>0){
+                    waypoints.value = response.data[n-1];
+                    response.data[n-1].forEach(wp => {
+                        leaflet.marker(wp).addTo(map);                        
+                    });
+                }
+            })
+        }
+
         return {
             close,
             onMapClick,
             onMapOver,
             onRightClick,
             clear,
+            save,
+            load,
             map,
             count,
             waypoints,
