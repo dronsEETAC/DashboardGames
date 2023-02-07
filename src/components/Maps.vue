@@ -1,9 +1,20 @@
 <template>
     <div class="popup">
         <div class="popup-inner">
-            <div id="map"></div>
-            <b-button style="width:20%; margin-left:20%" @click="close" variant="danger" size="lg">Close</b-button>
+            <div style="display:flex">
+                <div id="map"></div>
+                <div id="wpTable">
+                    <b-table :items="waypoints">                        
+                    </b-table>
+                </div>
+            </div>  
+            <div style="display:flex; margin-left:20%"> 
+                <b-button style="width:20%; margin-left:20%" @click="clear" variant="warning" size="lg">Clear</b-button>
+                <b-button style="width:20%; margin-left:20%" @click="close" variant="danger" size="lg">Close</b-button>  
+            </div>
+                      
         </div>
+        
     </div>
 </template>
 
@@ -18,6 +29,7 @@ export default {
         let count = 0;
         let waypoints = ref([]);
         let popup = leaflet.popup();
+        let tmpLine = undefined;
 
         onMounted (() => {
             
@@ -46,15 +58,27 @@ export default {
         function onMapClick(e){
             count = count + 1;
             console.log(e.latlng); //e -> event
+            if(count>1){
+                let last = waypoints.value[waypoints.value.length-1]; //agafo l'ultim waypoint
+                let distance = last.distanceTo(e.latlng).toFixed(0)/1000;
+                let midpoint = new leaflet.LatLng((last.lat + e.latlng.lat)/2, (last.lng + e.latlng.lng)/2); //punt mig entre dos waypoints
+                leaflet.marker(midpoint, {opacity:0.01}).addTo(map).bindTooltip(distance.toString(),  { // opacitat baixa pk el marcador no es vegi
+                            permanent: true,
+                            direction: 'center',
+                            className: "my_labels"
+                         }); //distancia entre waypoints
+            }     
+
             waypoints.value.push(e.latlng);
-            if (waypoints.value.length > 1){ // quan estigui al segon waypoint
-                leaflet.polyline(waypoints.value, {color: 'red'}).addTo(map); //polyline fa un poligon utilitzan com a vertex els valors de la llista de waypoints
+            if (waypoints.value.length > 1){ // quan estigui al segon waypoint    
+                leaflet.polyline(waypoints.value, {color: 'red'}).addTo(map);
             }
             leaflet.marker(e.latlng).addTo(map).bindTooltip(count.toString(),  {
                             permanent: true,
                             direction: 'center',
                             className: "my_labels"
-                         });
+                        }); //numero de waypoint
+            
             
         }
 
@@ -62,11 +86,17 @@ export default {
             if (count> 0){ // si ja tinc almenys un waypoint
                 let last = waypoints.value[waypoints.value.length-1]; //agafo l'ultim waypoint
                 let distance = last.distanceTo(e.latlng).toFixed(0)/1000; //funcio calcula la distancia
+                
+                let midpoint = new leaflet.LatLng((last.lat + e.latlng.lat)/2, (last.lng + e.latlng.lng)/2); //punt mig entre dos waypoints
                 // finestra que s'obre amb la distancia
                 popup 
-                .setLatLng(e.latlng) // esta on estigui el mouse
+                .setLatLng(midpoint) // esta on estigui el mouse
                 .setContent( distance.toString()) // el que ensenya
                 .openOn(map);
+                if(tmpLine!=undefined){
+                    tmpLine.remove(map); //borrem la linea anterior abans de dibuixar la nova, pk no es quedi tot ple de linees
+                }
+                tmpLine = leaflet.polyline([last,e.latlng], {color: 'red'}).addTo(map); //guardo la linea
             }
         }
 
@@ -74,14 +104,28 @@ export default {
             leaflet.polyline(waypoints.value, {color: 'green'}).addTo(map); // dibuixem el poligon de color verd, es dona per acabar el pla de vol
         }
 
+        function clear(){
+            count = 0;
+            waypoints.value = [];
+            map.eachLayer((layer) => { //recorre el mapa per anar borrant tot el que hem ficat, pero només si son waypoints o lines
+                if(layer['_latlng']!=undefined) //waypoint
+                    layer.remove();
+                if(layer['_path']!=undefined) //line
+                    layer.remove();
+            });
+        }
+
         return {
             close,
             onMapClick,
             onMapOver,
             onRightClick,
+            clear,
             map,
             count,
-            waypoints
+            waypoints,
+            popup,
+            tmpLine
         }
     }
 }
