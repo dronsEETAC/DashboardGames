@@ -6,7 +6,8 @@
             <Parameters v-if="showParametersPopup" @close="closeParameters"></Parameters> <!-- Quan es clicki el boto de close, Parameters.vue fara la funció close, quan aixo passi @close, aqui s'executara la funcio closeParameters -->
             <b-button @click="getValue" style="margin:1%; width:15%" variant="success">Get Value</b-button>
             <b-form-input style = "width:8%; margin-top:1%" disabled = "True" v-model="value" size="lg"></b-form-input> <!-- disabled pk no es pugui escriure -->
-            <b-button style="margin:1%; width:15%" variant="danger">Danger</b-button>
+            <b-button @click="showMap=!showMap" style="margin:1%; width:15%" variant="danger">Show Map</b-button>
+            <Maps v-if="showMap" @close="closeMap"></Maps>
         </div>
         <b-input-group prepend="New user" style="width:50%; margin-left: 22%; margin-top: 1%">
             <b-form-input placeholder="name here" v-model="username"></b-form-input>
@@ -25,16 +26,19 @@ import Swal from 'sweetalert2'
 
 // importar els components
 import Parameters from './Parameters.vue'
+import Maps from './Maps.vue'
 
 export default defineComponent({
     components:{
-        Parameters
+        Parameters,
+        Maps
     },
     setup () {
         let username = ref(undefined);
         let age = ref(undefined);
         let showParametersPopup = ref(false);
         let value = ref(undefined);
+        let showMap = ref(false);
         let client = inject('mqttClient');
         const emitter = inject('emitter');   // Inject `emitter` que hem creat al main.ts
 
@@ -62,17 +66,22 @@ export default defineComponent({
             client.publish("getValue","")
             client.subscribe("Value") // ens hem de subscriure a la resposta amb topic value
         }
+        function closeMap(){
+            showMap.value = false;
+        }
 
         return {
             alertClicked,            
             InputUsername,            
             closeParameters,
             getValue,
+            closeMap,
             username,
             age,
             showParametersPopup,
             value,
-            client
+            client,
+            showMap
         }
     }
 })
