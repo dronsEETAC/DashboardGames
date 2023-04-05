@@ -21,15 +21,14 @@ const emitter = mitt();                   // Initialize mitt
 import mqtt, { MqttClient } from 'mqtt'
 
 const app = createApp(App)
-app.use(BootstrapVue3)
-app.use(BootstrapVueIcons)
+app.provide('emitter', emitter);          // permet a tots els components accedir a aquell emisor
 
 let client: MqttClient
 try{
-    client = mqtt.connect('mqtt://localhost:9042') //proba a connectar-se
+    client = mqtt.connect('ws://broker.hivemq.com:8000/mqtt') //proba a connectar-se
     client.on('connect', () => { //si el commando que rep es 'connect', s'ha connectat bé
         console.log("Connection succeeded!");
-        client.publish("Connect","");
+        client.publish("dashboardWebApp/mobileApp/Connect","");        
         app.provide('mqttClient', client); // com s'ha connectet proveim el client als altres components pk el puguin utilitzar
     })
 }
@@ -37,5 +36,6 @@ catch(error){
     console.log("mqtt.connect error ", error);
 }
 
-app.provide('emitter', emitter);          // permet a tots els components accedir a aquell emisor
+app.use(BootstrapVue3)
+app.use(BootstrapVueIcons)
 app.mount('#app')

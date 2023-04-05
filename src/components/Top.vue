@@ -1,87 +1,79 @@
 <template>
     <div class="topStyle">
-        <div style="display:flex; margin-left:20%">
-            <b-button @click="alertClicked" style="margin:1%; width:15%" variant="primary">Alert</b-button>
-            <b-button @click="showParametersPopup = true" style="margin:1%; width:15%" variant="secondary">Parameters</b-button>
-            <Parameters v-if="showParametersPopup" @close="closeParameters"></Parameters> <!-- Quan es clicki el boto de close, Parameters.vue fara la funció close, quan aixo passi @close, aqui s'executara la funcio closeParameters -->
-            <b-button @click="getValue" style="margin:1%; width:15%" variant="success">Get Value</b-button>
-            <b-form-input style = "width:8%; margin-top:1%" disabled = "True" v-model="value" size="lg"></b-form-input> <!-- disabled pk no es pugui escriure -->
-            <b-button @click="showMap=!showMap" style="margin:1%; width:15%" variant="danger">Show Map</b-button>
-            <Maps v-if="showMap" @close="closeMap"></Maps>
+        <h3 style="text-align: center; margin-top: 2%; margin-bottom: 2%;"> Players </h3>
+        <div class="row" style="text-align: center; margin-top: 5%; margin-bottom: 2%;">
+            <div class="col">
+                <h5>{{ players[0] }}</h5>
+            </div>
+            <div class="col">
+                <h5>{{ players[1] }}</h5>
+            </div>
+            <div class="col">
+                <h5>{{ players[2] }}</h5>
+            </div>
+            <div class="col">
+                <h5>{{ players[3] }}</h5>
+            </div>
         </div>
-        <b-input-group prepend="New user" style="width:50%; margin-left: 22%; margin-top: 1%">
-            <b-form-input placeholder="name here" v-model="username"></b-form-input>
-            <b-form-input placeholder="age here" v-model="age"></b-form-input>
-            <b-input-group-append>
-            <b-button @click ="InputUsername" variant="info">Enter</b-button>
-            </b-input-group-append>
-        </b-input-group>
     </div>
 </template>
 
-<script> // treiem la etiqueta lang="ts" pk no es queixi dels tipus de typescript
+<script>
 import { defineComponent, ref, inject, onMounted } from 'vue' // ref per les variables que canvien, inject per 
 // https://www.npmjs.com/package/vue-sweetalert2
 import Swal from 'sweetalert2'
 
-// importar els components
-import Parameters from './Parameters.vue'
-import Maps from './Maps.vue'
-
 export default defineComponent({
     components:{
-        Parameters,
-        Maps
     },
-    setup () {
-        let username = ref(undefined);
-        let age = ref(undefined);
-        let showParametersPopup = ref(false);
-        let value = ref(undefined);
-        let showMap = ref(false);
+    setup (props, context) {
         let client = inject('mqttClient');
-        const emitter = inject('emitter');   // Inject `emitter` que hem creat al main.ts
+        const emitter = inject('emitter');
+        let numPlayers = 0;
+        let maxPlayers = ref(false);
+        let players = ref([]);
 
-        onMounted(() => { // quan es crei ("monti") aquest component, s'executarà la funcio
-            client.on('message', (topic,message) => { // en el caso de que se reciba un message
-                if(topic == "Value"){
-                    value.value = message;
+
+        onMounted(() => {
+            client.subscribe('mobileApp/dashboardControllers/username');
+
+            client.on('message', (topic, message) => {
+                if(topic=='mobileApp/dashboardControllers/username'){                    
+                    let success = InputUsername(message.toString());
+                    let newTopic = 'mobileApp/dashboardControllers/'+message.toString()+'/create'
+                    console.log(newTopic)
+                    client.publish(newTopic, success);                    
                 }
             })
-        }) 
+        })
       
-        function alertClicked(){
-            Swal.fire('Alert Clicked')
-        }
-        function InputUsername(){
-            console.log("name: ", username.value, " age: ", age.value);            
-            emitter.emit('newUser', {'name':username.value, 'age':age.value}); // objecte json
-            username.value = undefined;
-            age.value = undefined;
-        }
-        function closeParameters(){
-            showParametersPopup.value = false;
-        }
-        function getValue(){
-            client.publish("getValue","")
-            client.subscribe("Value") // ens hem de subscriure a la resposta amb topic value
-        }
-        function closeMap(){
-            showMap.value = false;
+        function InputUsername(username){  
+            let nameTaken = false;
+            for(var i = 0; i<players.value.length; i++){
+                if(username == players.value[i]){
+                    nameTaken = true;
+                }
+            }   
+            if(!nameTaken){
+                players.value.push(username);
+                numPlayers = numPlayers + 1;
+                if(numPlayers == 4){
+                    maxPlayers.value = true;   
+                    emitter.emit('players', {'players': players.value});          
+                }
+                return "ok"
+            } 
+            else{
+                return "error"
+            }      
+            
         }
 
-        return {
-            alertClicked,            
-            InputUsername,            
-            closeParameters,
-            getValue,
-            closeMap,
-            username,
-            age,
-            showParametersPopup,
-            value,
+        return {           
+            InputUsername,  
             client,
-            showMap
+            maxPlayers,
+            players
         }
     }
 })
@@ -90,7 +82,9 @@ export default defineComponent({
 <style scoped>
 .topStyle{
     border-style: solid;
-    border-color: red;
-    height: 20%;
+    border-color: rgb(0, 0, 0);
+    border-radius: 20px;
+    height: 22%;
+    margin-bottom: 10px;
 }
 </style>
