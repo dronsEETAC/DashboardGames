@@ -1,4 +1,4 @@
-# vue-tutorial
+# Dashboard for Controllers Application
 
 ## Project setup
 ```
