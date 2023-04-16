@@ -10,8 +10,8 @@
                 </div>
             </div>  
             <div style="display:flex; margin-left:20%"> 
-                <b-button style="width:20%; margin-left:1%; margin-top:5%" @click="save" variant="success" size="lg">Save</b-button>
-                <b-button style="width:20%; margin-left:1%; margin-top:5%" @click="clear" variant="warning" size="lg">Clear</b-button>
+                <b-button style="width:20%; margin-left:1%; margin-top:5%" @click="save" variant="success" size="lg" :disabled="buttonsDisabled">Finish</b-button>
+                <b-button style="width:20%; margin-left:1%; margin-top:5%" @click="clear" variant="warning" size="lg" :disabled="buttonsDisabled">Clear</b-button>
             </div>
                       
         </div>
@@ -40,14 +40,35 @@ export default {
         let client = inject('mqttClient');
         let tmpLineClick = undefined;
         let actualPlayer = ref(0);
-        let droneLabLimits = [[41.2764151, 1.9882914],[41.2762170, 1.9883551],[41.2763733, 1.9890491],[41.2765582, 1.9889881]];
+        let droneLabLimits = [[41.27643580, 1.98821960],[41.27619490, 1.98833760],[41.27636320, 1.98911820],[41.27658190, 1.98901760]];
         let playersPolygons = [];
         let playersPolygonsCoord = [];
         let showTitle = ref(false);
         let waypointsCoord = [];
         let sectorsLines = [];
         let playerColors = ['blue', 'red', 'green', 'yellow'];
-        
+        let buttonsDisabled = ref(true);
+
+        let drone;
+        let northLine;
+        let southLine;
+        let westLine;
+        let eastLine;
+        let practicePointLat = 41.2765003;
+        let practicePointLong = 1.9889760;
+        let practicePoint = [practicePointLat, practicePointLong];
+        let northPoint;
+        let southPoint;
+        let eastPoint;
+        let westPoint;
+        let northIcon = leaflet.divIcon({className: 'mylabel', html: "<div style='width: 50;'><b style='color:yellow; margin-left: 2px;'>N</b></div>"});
+        let southIcon = leaflet.divIcon({className: 'mylabel', html: "<div style='width: 50;'><b style='color:yellow; margin-left: 2px;'>S</b></div>"});
+        let eastIcon = leaflet.divIcon({className: 'mylabel', html: "<div style='width: 50;'><b style='color:yellow;'>E</b></div>"});
+        let westIcon = leaflet.divIcon({className: 'mylabel', html: "<div style='width: 50;'><b style='color:yellow;'>W</b></div>"});
+        let northLabel;
+        let southLabel;
+        let eastLabel;
+        let westLabel;
 
         onMounted (() => {
             
@@ -69,8 +90,83 @@ export default {
             emitter.on('players', (data) => {
                 players.value = data.players;
                 showTitle.value = true;
+                buttonsDisabled.value = false;
+            })
+
+            client.subscribe('autopilotService/mobileApp/telemetryInfo');
+
+            client.on('message', (topic, message) => {
+                if(topic=="autopilotService/mobileApp/telemetryInfo"){
+                    let telemetryInfo = JSON.parse(message);
+                    practicePointLat = telemetryInfo.lat;
+                    practicePointLong = telemetryInfo.lon;
+                    practicePoint = [practicePointLat, practicePointLong];
+                    paintDrone();
+                    buttonsDisabled.value = true;
+                    let insidePlayer = false;
+                    for(let i = 0; i<playersPolygonsCoord.length; i++){
+                        if(inside([practicePointLat, practicePointLong], playersPolygonsCoord[i])){
+                            insidePlayer = true;
+                        }
+                    }
+                    if(insidePlayer == false){
+                        client.publish("mobileApp/autopilotService/returnToLaunch","");
+                    }
+                }
             })
         })
+
+        function paintDrone(){
+            if(drone!=undefined){
+                drone.remove(map);
+            }
+            if(northLine!=undefined){
+                northLine.remove(map);
+            }
+            if(southLine!=undefined){
+                southLine.remove(map);
+            }
+            if(eastLine!=undefined){
+                eastLine.remove(map);
+            }
+            if(westLine!=undefined){
+                westLine.remove(map);
+            }
+            if(northLabel!=undefined){
+                northLabel.remove(map);
+            }
+            if(southLabel!=undefined){
+                southLabel.remove(map);
+            }
+            if(eastLabel!=undefined){
+                eastLabel.remove(map);
+            }
+            if(westLabel!=undefined){
+                westLabel.remove(map);
+            }
+            
+            drone = leaflet.circle(practicePoint, 0.8, {stroke: false, fill: true, fillColor: "red", fillOpacity: 1}).addTo(map);
+            northPoint = [practicePointLat + 0.00003, practicePointLong + 0];
+            southPoint = [practicePointLat - 0.00003, practicePointLong + 0];
+            eastPoint = [practicePointLat + 0, practicePointLong + 0.00004];
+            westPoint = [practicePointLat + 0, practicePointLong - 0.00004];
+            northLine = leaflet.polyline([practicePoint, northPoint], {color: 'red'}).addTo(map);
+            southLine = leaflet.polyline([practicePoint, southPoint], {color: 'red'}).addTo(map);
+            eastLine = leaflet.polyline([practicePoint, eastPoint], {color: 'red'}).addTo(map);
+            westLine = leaflet.polyline([practicePoint, westPoint], {color: 'red'}).addTo(map);
+            northLabel = leaflet.marker( northPoint, {
+                icon: northIcon
+            }).addTo(map);
+            southLabel = leaflet.marker( southPoint, {
+                icon: southIcon
+            }).addTo(map);
+            eastLabel = leaflet.marker( eastPoint, {
+                icon: eastIcon
+            }).addTo(map);
+            westLabel = leaflet.marker( westPoint, {
+                icon: westIcon
+            }).addTo(map);
+       }
 
         function onMapClick(e){            
             if(inside([e.latlng.lat, e.latlng.lng], droneLabLimits) && actualPlayer.value!=3 && players.value.length>0){
@@ -268,7 +364,8 @@ export default {
             tmpLine,
             players,
             actualPlayer,
-            showTitle
+            showTitle,
+            buttonsDisabled
         }
     }
 }
