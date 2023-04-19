@@ -44,6 +44,11 @@ export default defineComponent({
                     console.log(newTopic)
                     client.publish(newTopic, success);                    
                 }
+                else if(topic == "mobileApp/dashboardControllers/disconnect"){
+                    players.value = [];
+                    maxPlayers.value = false;
+                    numPlayers = 0;                    
+                }
             })
         })
       

@@ -10,7 +10,8 @@
                 </div>
             </div>  
             <div style="display:flex; margin-left:20%"> 
-                <b-button style="width:20%; margin-left:1%; margin-top:5%" @click="save" variant="success" size="lg" :disabled="buttonsDisabled">Finish</b-button>
+                <b-button style="width:20%; margin-left:1%; margin-top:5%" @click="nextPlayer" variant="info" size="lg" :disabled="nextPlayerDisabled">Next Player</b-button>
+                <b-button style="width:20%; margin-left:1%; margin-top:5%" @click="save" variant="success" size="lg" :disabled="buttonFinishDisabled">Finish</b-button>
                 <b-button style="width:20%; margin-left:1%; margin-top:5%" @click="clear" variant="warning" size="lg" :disabled="buttonsDisabled">Clear</b-button>
             </div>
                       
@@ -41,6 +42,7 @@ export default {
         let tmpLineClick = undefined;
         let actualPlayer = ref(0);
         let droneLabLimits = [[41.27643580, 1.98821960],[41.27619490, 1.98833760],[41.27636320, 1.98911820],[41.27658190, 1.98901760]];
+        //let droneLabLimits = [[41.2764151, 1.9882914],[41.2762170, 1.9883551],[41.2763733, 1.9890491],[41.2765582, 1.9889881]];
         let playersPolygons = [];
         let playersPolygonsCoord = [];
         let showTitle = ref(false);
@@ -48,6 +50,9 @@ export default {
         let sectorsLines = [];
         let playerColors = ['blue', 'red', 'green', 'yellow'];
         let buttonsDisabled = ref(true);
+        let buttonFinishDisabled = ref(true);
+        let nextPlayerDisabled = ref(true);
+        let actualPlayerPolygon = [];
 
         let drone;
         let northLine;
@@ -92,8 +97,8 @@ export default {
                 showTitle.value = true;
                 buttonsDisabled.value = false;
             })
-
-            client.subscribe('autopilotService/mobileApp/telemetryInfo');
+            
+            client.subscribe("mobileApp/dashboardControllers/disconnect");
 
             client.on('message', (topic, message) => {
                 if(topic=="autopilotService/mobileApp/telemetryInfo"){
@@ -103,15 +108,26 @@ export default {
                     practicePoint = [practicePointLat, practicePointLong];
                     paintDrone();
                     buttonsDisabled.value = true;
+
                     let insidePlayer = false;
-                    for(let i = 0; i<playersPolygonsCoord.length; i++){
-                        if(inside([practicePointLat, practicePointLong], playersPolygonsCoord[i])){
-                            insidePlayer = true;
-                        }
+                    for(let i = 0; i<4; i++){
+                        for(let j = 0; j<playersPolygonsCoord[i].length; j++){
+                            if(inside([practicePointLat, practicePointLong], playersPolygonsCoord[i][j])){
+                                insidePlayer = true;
+                            }
+                        }                        
                     }
                     if(insidePlayer == false){
                         client.publish("mobileApp/autopilotService/returnToLaunch","");
                     }
+                    
+                }
+                else if(topic == "mobileApp/dashboardControllers/disconnect"){
+                    clear();
+                    players.value = [];
+                    client.publish('mobileApp/autopilotService/disconnect');
+                    client.publish('dashboardControllers/mobileApp/disconnect');
+                    client.unsubscribe("autopilotService/mobileApp/telemetryInfo")
                 }
             })
         })
@@ -169,14 +185,17 @@ export default {
        }
 
         function onMapClick(e){            
-            if(inside([e.latlng.lat, e.latlng.lng], droneLabLimits) && actualPlayer.value!=3 && players.value.length>0){
+           if(inside([e.latlng.lat, e.latlng.lng], droneLabLimits) && actualPlayer.value!=3 && players.value.length>0){
             /* let a = true;
-            if(a){ */
+            if(a){  */
                 let insidePlayer = false;
                 for(let i = 0; i<actualPlayer.value; i++){
-                    if(inside([e.latlng.lat, e.latlng.lng], playersPolygonsCoord[i])){
-                        insidePlayer = true;
+                    for(let j = 0; j<playersPolygonsCoord[i].length; j++){
+                        if(inside([e.latlng.lat, e.latlng.lng], playersPolygonsCoord[i][j])){
+                            insidePlayer = true;
+                        }
                     }
+                    
                 }
                 if(insidePlayer == false){
                     count = count + 1;     
@@ -210,28 +229,24 @@ export default {
         }
 
         function onRightClick(e){
-           if(actualPlayer.value!=3 && players.value.length>0){                     
+            if(actualPlayer.value!=3 && players.value.length>0){                     
             /* let a = true;
             if(a){ */
-                let color;
-                if(actualPlayer.value == 0){
-                    color = 'blue';                
-                }
-                else if(actualPlayer.value == 1){
-                    color = 'red';
-                }  
+                let color;                
                 if(waypoints.value.length>=4){                    
                     if(!polygonsIntersect()){        
-                        playersPolygons.push(leaflet.polygon(waypoints.value, {color: color}).addTo(map));
-                        playersPolygonsCoord.push([waypointsCoord]);
-                        if(actualPlayer.value == 2){
-                            playersPolygonsCoord[3] = [droneLabLimits,playersPolygonsCoord[0][0],playersPolygonsCoord[1][0], playersPolygonsCoord[2][0]];
-                            playersPolygons.push(leaflet.polygon(playersPolygonsCoord[3], {color: 'yellow'}).addTo(map));
-                            playersPolygons.push(leaflet.polygon(playersPolygonsCoord[0], {color: 'blue'}).addTo(map));
-                            playersPolygons.push(leaflet.polygon(playersPolygonsCoord[1], {color: 'red'}).addTo(map));
-                            playersPolygons.push(leaflet.polygon(playersPolygonsCoord[2], {color: 'green'}).addTo(map))
-                        }                    
-                        actualPlayer.value = actualPlayer.value + 1;
+                        if(actualPlayer.value == 0){
+                            color = 'blue'; 
+                            nextPlayerDisabled.value = false;                                    
+                        }
+                        else if(actualPlayer.value == 1){
+                            color = 'red';
+                        }  
+                        else if(actualPlayer.value == 2){
+                            color = 'green';
+                        }                         
+                        playersPolygons.push(leaflet.polygon(waypoints.value, {color: color}).addTo(map));                        
+                        actualPlayerPolygon.push(waypointsCoord);                                      
                     }
                     else{
                         Swal.fire("Sectors can't intersect")
@@ -247,6 +262,7 @@ export default {
                     tmpLine.remove(map);
                     tmpLine = undefined; 
                     sectorsLines = [];  
+                    nextPlayerDisabled.value = false;                   
                 }
                 else{
                     Swal.fire("sectors must have at least four points");
@@ -263,12 +279,15 @@ export default {
             playersPolygons = [];
             sectorsLines = []; 
             waypointsCoord = [];
+            actualPlayerPolygon = [];
+            playersPolygonsCoord = [];
             map.eachLayer((layer) => { //recorre el mapa per anar borrant tot el que hem ficat, pero només si son waypoints o lines
                 if(layer['_latlng']!=undefined) //waypoint
                     layer.remove();
                 if(layer['_path']!=undefined) //line
                     layer.remove();
             });
+            leaflet.polygon(droneLabLimits, {color: 'white'}).addTo(map);
         }
 
         function save(){
@@ -284,7 +303,9 @@ export default {
                     for(let i = 0; i<players.value.length; i++){
                         let topic = "dashboardControllers/mobileApp/"+players.value[i]+"/sector";
                         let message = sectorToJSON(playersPolygonsCoord[i], i);
+                        console.log(message);
                         client.publish(topic, message);
+                        client.subscribe('autopilotService/mobileApp/telemetryInfo');
                     }                                      
                 }
             })
@@ -325,29 +346,65 @@ export default {
                 if (intersect) { 
                     inside = !inside;
                 }
-            }
-            
+            }            
             return inside;
         }
 
         function polygonsIntersect(){
             let intersecting = false;
             let newWaypoints = Array.from(waypointsCoord);
+            console.log(newWaypoints);
             let newPolygonCoord;
-            newWaypoints.push(waypointsCoord[0])
+            newWaypoints.push(waypointsCoord[0]);
+            let pol1 = turf.polygon([newWaypoints]);
             for(let i = 0; i<actualPlayer.value; i++){
-                let pol1 = turf.polygon([newWaypoints]);
-                newPolygonCoord = Array.from(playersPolygonsCoord[i][0]);
-                newPolygonCoord.push(playersPolygonsCoord[i][0][0]);
+                console.log("dins");
+                for(let j = 0; j<playersPolygonsCoord[i].length; j++){                    
+                    newPolygonCoord = Array.from(playersPolygonsCoord[i][j]);
+                    newPolygonCoord.push(playersPolygonsCoord[i][j][0]);                    
+                    let pol2 = turf.polygon([newPolygonCoord]);
+                    let intersection = turf.intersect(pol1, pol2);
+                    if(intersection!=null){
+                        intersecting = true;
+                    }
+                }                                
+            }     
+            for(let j = 0; j<actualPlayerPolygon.length; j++){
+                newPolygonCoord = Array.from(actualPlayerPolygon[j]);
+                newPolygonCoord.push(actualPlayerPolygon[j][0]);                    
                 let pol2 = turf.polygon([newPolygonCoord]);
-                var intersection = turf.intersect(pol1, pol2);
+                let intersection = turf.intersect(pol1, pol2);
                 if(intersection!=null){
                     intersecting = true;
                 }
-            }            
+            }
+
             newWaypoints = null;
             newPolygonCoord = null;
             return intersecting
+        }
+
+        function nextPlayer(){
+            actualPlayer.value = actualPlayer.value + 1;            
+            playersPolygonsCoord.push(actualPlayerPolygon);
+            nextPlayerDisabled.value = true;            
+            if(actualPlayer.value == 3){
+                actualPlayerPolygon = [droneLabLimits];                
+                for(let i = 0; i<3; i++){                                
+                    for(let j = 0; j<playersPolygonsCoord[i].length ; j++){
+                        actualPlayerPolygon.push(playersPolygonsCoord[i][j])    
+                    }
+                }
+                playersPolygonsCoord.push(actualPlayerPolygon);
+                playersPolygons.push(leaflet.polygon(playersPolygonsCoord[3], {color: 'yellow'}).addTo(map));
+                playersPolygons.push(leaflet.polygon(playersPolygonsCoord[0], {color: 'blue'}).addTo(map));
+                playersPolygons.push(leaflet.polygon(playersPolygonsCoord[1], {color: 'red'}).addTo(map));
+                playersPolygons.push(leaflet.polygon(playersPolygonsCoord[2], {color: 'green'}).addTo(map));                
+                buttonFinishDisabled.value = false;
+            }  
+            Swal.fire('Set sectors for player: '+players.value[actualPlayer.value]);    
+
+            actualPlayerPolygon = [];
         }
 
 
@@ -365,7 +422,10 @@ export default {
             players,
             actualPlayer,
             showTitle,
-            buttonsDisabled
+            buttonsDisabled,
+            nextPlayer,
+            nextPlayerDisabled,
+            buttonFinishDisabled
         }
     }
 }
