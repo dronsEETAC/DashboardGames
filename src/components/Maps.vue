@@ -1,5 +1,9 @@
 <template>
     <div style="margin-top: 2%;">
+        <div style="display:flex; margin-left:10%; margin-bottom: 5%;"> 
+            <b-button style="width:40%; margin-top:5%" @click="selectScenario" variant="info" size="lg" :disabled="selectScenarioButtonDisabled">Select Scenario</b-button>
+            <b-button style="width:40%; margin-left:2%; margin-top:5%" @click="createScenario" variant="info" size="lg" :disabled="createScenarioButtonDisabled">Create Scenario</b-button>
+        </div>
         <div>
             <h3 v-if="showTitle" style="text-align: center; margin-bottom: 20px;">Add section for player: {{ players[actualPlayer] }}</h3>
             <div style="display:flex">
@@ -16,7 +20,7 @@
             </div>
                       
         </div>
-        
+        <Scenarios v-if="showScenarios" @close="showScenarios=false"></Scenarios>
     </div>
 </template>
 
@@ -27,8 +31,12 @@ import leaflet from 'leaflet'
 import axios from 'axios'
 import Swal from 'sweetalert2'
 import * as turf from '@turf/turf';
+import Scenarios from './Scenarios.vue'
 
 export default {
+    components:{
+        Scenarios
+    },
     setup (props,context) {
 
         let map;
@@ -53,6 +61,11 @@ export default {
         let buttonFinishDisabled = ref(true);
         let nextPlayerDisabled = ref(true);
         let actualPlayerPolygon = [];
+        let creatingScenario = ref(false);
+        let showScenarios = ref(false);
+        let selectScenarioButtonDisabled = ref(true);
+        let createScenarioButtonDisabled = ref(true);
+        let scenario;
 
         let drone;
         let northLine;
@@ -75,6 +88,21 @@ export default {
         let eastLabel;
         let westLabel;
 
+        let scenario1 = [[[[41.2763662, 1.9891155],[41.2764831, 1.9890632],[41.2764156, 1.9886917],[41.2762886, 1.9887453]]], //player 1
+                        [[[41.2764831, 1.9890632],[41.2764156, 1.9886917],[41.2765134, 1.9886555],[41.2765769, 1.9890149]]], //player 2
+                        [[[41.2764156, 1.9886917],[41.2762886, 1.9887453],[41.2762029, 1.9883443],[41.2763350, 1.9882773]]], //player 3
+                        [[[41.2765134, 1.9886555],[41.2764156, 1.9886917],[41.2763350, 1.9882773],[41.2764307, 1.9882330]]]]; //player 4
+
+        let scenario2 = [[[[41.2763702, 1.9891101],[41.2765748, 1.9890122],[41.2765416, 1.9888271],[41.2763319, 1.9889250]]],
+                        [[[41.2765416, 1.9888271],[41.2763319, 1.9889250],[41.2762967, 1.9887520],[41.2765083, 1.9886461]]],
+                        [[[41.2762967, 1.9887520],[41.2765083, 1.9886461],[41.2764720, 1.9884396],[41.2762443, 1.9885428]]],
+                        [[[41.2764720, 1.9884396],[41.2762443, 1.9885428],[41.2762049, 1.9883497],[41.2764327, 1.9882303]]]];
+
+        let scenario3 = [[[[41.2765759, 1.9890162],[41.2765043, 1.9890457],[41.2764761, 1.9888848],[41.2765466, 1.9888526]],[[41.2764821, 1.9885053],[41.2763309, 1.9885804],[41.2763088, 1.9884530],[41.2764095, 1.9884034],[41.2763793, 1.9882572],[41.2764307, 1.9882397]]],
+                        [[[41.2765043, 1.9890457],[41.2764851, 1.9889331],[41.2763450, 1.9889881],[41.2763692, 1.9891061]],[[41.2765083, 1.9886340],[41.2762886, 1.9887225],[41.2762594, 1.9886085],[41.2764821, 1.9885053]]],
+                        [[[41.2764851, 1.9889331],[41.2764761, 1.9888848],[41.2765466, 1.9888526],[41.2765083, 1.9886340],[41.2763803, 1.9886823],[41.2764358, 1.9889532]],[[41.2762594, 1.9886085],[41.2763309, 1.9885804],[41.2763088, 1.9884530],[41.2762362, 1.9884959]]],
+                        [[[41.2763450, 1.9889881],[41.2764358, 1.9889532],[41.2763803, 1.9886823],[41.2762886, 1.9887225]],[[41.2762362, 1.9884959],[41.2764095, 1.9884034],[41.2763793, 1.9882572],[41.2762039, 1.9883457]]]]
+
         onMounted (() => {
             
             map = leaflet.map('map').setView([41.276386992722706, 1.988712064955474], 19); //coordenadas del campus, es posa en un objecte amb id 'map' que posem a la div, el 19 i el maxZoom es per allunyar i apropar
@@ -96,6 +124,14 @@ export default {
                 players.value = data.players;
                 showTitle.value = true;
                 buttonsDisabled.value = false;
+                selectScenarioButtonDisabled.value = false;
+                createScenarioButtonDisabled.value = false;
+            })
+
+            emitter.on('scenarioSelected', (data) => {
+                scenario = data.scenario;
+                paintScenario();                
+                selectScenarioButtonDisabled.value = true;
             })
             
             client.subscribe("mobileApp/dashboardControllers/disconnect");
@@ -108,17 +144,20 @@ export default {
                     practicePoint = [practicePointLat, practicePointLong];
                     paintDrone();
                     buttonsDisabled.value = true;
-
-                    let insidePlayer = false;
-                    for(let i = 0; i<4; i++){
-                        for(let j = 0; j<playersPolygonsCoord[i].length; j++){
-                            if(inside([practicePointLat, practicePointLong], playersPolygonsCoord[i][j])){
-                                insidePlayer = true;
-                            }
-                        }                        
-                    }
-                    if(insidePlayer == false){
-                        client.publish("mobileApp/autopilotService/returnToLaunch","");
+                    selectScenarioButtonDisabled.value = true;
+                    createScenarioButtonDisabled.value = true;
+                    if(playersPolygonsCoord.length>0){
+                        let insidePlayer = false;
+                        for(let i = 0; i<4; i++){
+                            for(let j = 0; j<playersPolygonsCoord[i].length; j++){
+                                if(inside([practicePointLat, practicePointLong], playersPolygonsCoord[i][j])){
+                                    insidePlayer = true;
+                                }
+                            }                        
+                        }
+                        if(insidePlayer == false){
+                            client.publish("mobileApp/autopilotService/returnToLaunch","");
+                        }
                     }
                     
                 }
@@ -184,8 +223,8 @@ export default {
             }).addTo(map);
        }
 
-        function onMapClick(e){            
-           if(inside([e.latlng.lat, e.latlng.lng], droneLabLimits) && actualPlayer.value!=3 && players.value.length>0){
+        function onMapClick(e){           
+           if(inside([e.latlng.lat, e.latlng.lng], droneLabLimits) && actualPlayer.value!=3 && players.value.length>3 && creatingScenario.value == true){
             /* let a = true;
             if(a){  */
                 let insidePlayer = false;
@@ -229,7 +268,7 @@ export default {
         }
 
         function onRightClick(e){
-            if(actualPlayer.value!=3 && players.value.length>0){                     
+            if(actualPlayer.value!=3 && players.value.length>3  && creatingScenario.value == true){                     
             /* let a = true;
             if(a){ */
                 let color;                
@@ -302,20 +341,26 @@ export default {
                 if(result.value){ //confirmed                    
                     for(let i = 0; i<players.value.length; i++){
                         let topic = "dashboardControllers/mobileApp/"+players.value[i]+"/sector";
-                        let message = sectorToJSON(playersPolygonsCoord[i], i);
+                        let message = sectorToJSON(playersPolygonsCoord[i], i, !creatingScenario.value);
                         console.log(message);
                         client.publish(topic, message);
                         client.subscribe('autopilotService/mobileApp/telemetryInfo');
+                        creatingScenario.value = false;
+                        buttonsDisabled.value = true;
+                        selectScenarioButtonDisabled.value = true;
+                        createScenarioButtonDisabled.value = true;
+                        buttonFinishDisabled.value = true;
                     }                                      
                 }
             })
         }
 
-        function sectorToJSON(sectorsPlayer, indexColor){
+        function sectorToJSON(sectorsPlayer, indexColor, predeterminedScenario){
             let waypoint;
             let sectorJSON = {
                 sector: [],
-                color: playerColors[indexColor]
+                color: playerColors[indexColor],
+                scenario: predeterminedScenario
             }
             for(let i = 0; i<sectorsPlayer.length; i++){ //sectors
                 let sectorArray = [];
@@ -401,10 +446,42 @@ export default {
                 playersPolygons.push(leaflet.polygon(playersPolygonsCoord[1], {color: 'red'}).addTo(map));
                 playersPolygons.push(leaflet.polygon(playersPolygonsCoord[2], {color: 'green'}).addTo(map));                
                 buttonFinishDisabled.value = false;
-            }  
-            Swal.fire('Set sectors for player: '+players.value[actualPlayer.value]);    
+                Swal.fire('Sector set for player: '+players.value[actualPlayer.value]);   
+            }
+            else{
+                Swal.fire('Set sectors for player: '+players.value[actualPlayer.value]);   
+            }              
 
             actualPlayerPolygon = [];
+        }
+
+        function selectScenario(){
+            showScenarios.value = true;
+            createScenarioButtonDisabled.value = true;
+        }
+
+        function createScenario(){
+            creatingScenario.value = true;
+            selectScenarioButtonDisabled.value = true;
+        }
+
+        function paintScenario(){
+            if(scenario == '1'){
+                playersPolygonsCoord = Array.from(scenario1);
+            }
+            else if(scenario == '2'){
+                playersPolygonsCoord = Array.from(scenario2);
+            }   
+            else{
+                playersPolygonsCoord = Array.from(scenario3);
+            }         
+            
+            playersPolygons.push(leaflet.polygon(playersPolygonsCoord[0], {color: 'blue'}).addTo(map));
+            playersPolygons.push(leaflet.polygon(playersPolygonsCoord[1], {color: 'red'}).addTo(map));
+            playersPolygons.push(leaflet.polygon(playersPolygonsCoord[2], {color: 'green'}).addTo(map));
+            playersPolygons.push(leaflet.polygon(playersPolygonsCoord[3], {color: 'yellow'}).addTo(map));
+
+            buttonFinishDisabled.value = false;
         }
 
 
@@ -425,7 +502,12 @@ export default {
             buttonsDisabled,
             nextPlayer,
             nextPlayerDisabled,
-            buttonFinishDisabled
+            buttonFinishDisabled,
+            selectScenario,
+            createScenario,
+            showScenarios,
+            selectScenarioButtonDisabled,
+            createScenarioButtonDisabled
         }
     }
 }
@@ -437,6 +519,7 @@ export default {
     width: 80%;
     height: 600px;
     border-style: solid;
+    z-index: 1;
 }
 
 .my_labels{

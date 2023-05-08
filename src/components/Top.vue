@@ -40,7 +40,7 @@ export default defineComponent({
             client.on('message', (topic, message) => {
                 if(topic=='mobileApp/dashboardControllers/username'){                    
                     let success = InputUsername(message.toString());
-                    let newTopic = 'mobileApp/dashboardControllers/'+message.toString()+'/create'
+                    let newTopic = 'dashboardControllers/mobileApp/'+message.toString()+'/create'
                     console.log(newTopic)
                     client.publish(newTopic, success);                    
                 }
