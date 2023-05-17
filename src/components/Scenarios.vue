@@ -1,38 +1,71 @@
 <template>
     <div class="popup">
         <div class="popup-inner">
-            <div class="row">
+            <div class="row" v-if="props.numPlayers==4">
                 <div class="col" style="text-align: center;"> 
-                    <img src="../assets/scenario1.png" style="width:100%; border-radius: 10px;">
+                    <img src="../assets/scenario4p1.png" style="width:100%; border-radius: 10px;">
                     <b-button @click="select(1)" class="button">Scenario 1</b-button>
                 </div>
                 <div class="col"> 
-                    <img src="../assets/scenario2.png" style="width:100%; border-radius: 10px;">
+                    <img src="../assets/scenario4p2.png" style="width:100%; border-radius: 10px;">
                     <b-button @click="select(2)" class="button">Scenario 2</b-button>
                 </div>
                 <div class="col"> 
-                    <img src="../assets/scenario3.png" style="width:100%; border-radius: 10px;">
+                    <img src="../assets/scenario4p3.png" style="width:100%; border-radius: 10px;">
                     <b-button @click="select(3)" class="button">Scenario 3</b-button>
                 </div>
-            </div>                       
+            </div>
+            <div class="row" v-if="props.numPlayers==3">
+                <div class="col" style="text-align: center;"> 
+                    <img src="../assets/scenario3p1.png" style="width:100%; border-radius: 10px;">
+                    <b-button @click="select(1)" class="button">Scenario 1</b-button>
+                </div>
+                <div class="col"> 
+                    <img src="../assets/scenario3p2.png" style="width:100%; border-radius: 10px;">
+                    <b-button @click="select(2)" class="button">Scenario 2</b-button>
+                </div>
+                <div class="col"> 
+                    <img src="../assets/scenario3p3.png" style="width:100%; border-radius: 10px;">
+                    <b-button @click="select(3)" class="button">Scenario 3</b-button>
+                </div>
+            </div>  
+            <div class="row" v-if="props.numPlayers==2">
+                <div class="col" style="text-align: center;"> 
+                    <img src="../assets/scenario2p1.png" style="width:100%; border-radius: 10px;">
+                    <b-button @click="select(1)" class="button">Scenario 1</b-button>
+                </div>
+                <div class="col"> 
+                    <img src="../assets/scenario2p2.png" style="width:100%; border-radius: 10px;">
+                    <b-button @click="select(2)" class="button">Scenario 2</b-button>
+                </div>
+                <div class="col"> 
+                    <img src="../assets/scenario2p3.png" style="width:100%; border-radius: 10px;">
+                    <b-button @click="select(3)" class="button">Scenario 3</b-button>
+                </div>
+            </div>                  
         </div>
     </div>
 </template>
 
 <script>
-import { defineComponent, inject } from 'vue'
+import { defineComponent, inject, onMounted, ref } from 'vue'
 
 export default defineComponent({
+    props: {
+        numPlayers: Number
+    },
     setup (props, context) {
 
         const emitter = inject('emitter');
-
+                
         function select(value){
             emitter.emit('scenarioSelected', {'scenario':value}); // objecte json
             context.emit('close')
-        }
+        }   
+
         return {
-            select
+            select,
+            props            
         }
     }
 })

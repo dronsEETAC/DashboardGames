@@ -32,7 +32,7 @@ export default defineComponent({
 
     return {
       toggle,
-      connected  
+      connected
     }
   }
 });
