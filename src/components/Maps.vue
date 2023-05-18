@@ -17,7 +17,7 @@
                 <b-button style="width:20%; margin-left:1%; margin-top:5%" @click="nextPlayer" variant="info" size="lg" :disabled="nextPlayerDisabled" v-if="sectorsButtonsShowing">Next Player</b-button>
                 <b-button style="width:20%; margin-left:1%; margin-top:5%" @click="save" variant="success" size="lg" :disabled="buttonFinishDisabled" v-if="sectorsButtonsShowing">Finish</b-button>
                 <b-button style="width:20%; margin-left:1%; margin-top:5%" @click="clear" variant="warning" size="lg" :disabled="buttonsDisabled" v-if="sectorsButtonsShowing">Clear</b-button>
-                <b-button style="width:60%; margin-left:1%; margin-top:5%" @click="finishPractice" variant="success" size="lg" v-if="finishPracticeButtonShowing">Finish Practice</b-button>
+                <b-button style="width:60%; margin-left:1%; margin-top:5%" @click="finishPractice" variant="danger" size="lg" v-if="finishPracticeButtonShowing">Finish Practice</b-button>
                 <b-button style="width:60%; margin-left:1%; margin-top:5%" @click="startFlying" variant="success" size="lg" v-if="startFlyingButtonShowing">Start Flying</b-button>
                 <b-button style="width:60%; margin-left:1%; margin-top:5%" variant="warning" size="lg" v-if="flying">Flying...</b-button>
                 <b-button style="width:60%; margin-left:1%; margin-top:5%" variant="info" size="lg" v-if="home">Home</b-button>
@@ -98,6 +98,7 @@ export default {
         let southLabel;
         let eastLabel;
         let westLabel;
+        let finalBasePolygon;
 
         let scenario4p1 = [[[[41.2763662, 1.9891155],[41.2764831, 1.9890632],[41.2764156, 1.9886917],[41.2762886, 1.9887453]]], //player 1
                         [[[41.2764831, 1.9890632],[41.2764156, 1.9886917],[41.2765134, 1.9886555],[41.2765769, 1.9890149]]], //player 2
@@ -135,6 +136,8 @@ export default {
         let scenario2p3 = [[[[41.2763712, 1.9891047],[41.2765043, 1.9890390],[41.2764630, 1.9888379],[41.2763340, 1.9889022]],[[41.2765335, 1.9888043],[41.2764801, 1.9884959],[41.2762574, 1.9885844],[41.2762896, 1.9887145],[41.2764267, 1.9886555],[41.2764630, 1.9888379]],[[41.2763702, 1.9882679],[41.2764035, 1.9884114],[41.2763098, 1.9884516],[41.2762735, 1.9883135]]],
                         [[[41.2765043, 1.9890390],[41.2764630, 1.9888379],[41.2765335, 1.9888043],[41.2765708, 1.9890109]],[[41.2764630, 1.9888379],[41.2763340, 1.9889022],[41.2762896, 1.9887145],[41.2764267, 1.9886555]],[[41.2764801, 1.9884959],[41.2762574, 1.9885844],[41.2762080, 1.9883510],[41.2762735, 1.9883135],[41.2763098, 1.9884516],[41.2764035, 1.9884114],[41.2763702, 1.9882679],[41.2764287, 1.9882330]]]];
 
+        let finalBase = [[41.2763471, 1.9882880],[41.2763209, 1.9883001],[41.2763249, 1.9883336],[41.2763541, 1.9883242]];
+        
         onMounted (() => {
             
             map = leaflet.map('map').setView([41.276386992722706, 1.988712064955474], 19); //coordenadas del campus, es posa en un objecte amb id 'map' que posem a la div, el 19 i el maxZoom es per allunyar i apropar
@@ -152,6 +155,7 @@ export default {
 
             let droneLabPolygon = leaflet.polygon(droneLabLimits, {color: 'white'}).addTo(map);
             paintDrone();
+            finalBasePolygon = leaflet.polygon(finalBase, {color: '#D301F9', fillColor: '#D301F9', fillOpacity: 0.5}).addTo(map);
 
             emitter.on('players', (data) => {
                 players.value = data.players;
@@ -170,6 +174,7 @@ export default {
             
             client.subscribe("mobileApp/dashboardControllers/disconnect");
             client.subscribe("mobileApp/dashboardControllers/direction");
+            client.subscribe("mobileApp/dashboardControllers/drop");
 
             client.on('message', (topic, message) => {
                 if(topic=="autopilotService/mobileApp/telemetryInfo"){
@@ -205,8 +210,16 @@ export default {
                     
                 }
                 else if(topic == "mobileApp/dashboardControllers/direction"){
-                    console.log(message);
                     direction = message;                    
+                }
+                else if(topic == "mobileApp/dashboardControllers/drop"){
+                    if(inside(practicePoint,finalBase)){
+                        Swal.fire("Mission Accomplished! :)")
+                    }
+                    else{
+                        Swal.fire("Mission failed... :(")
+                    }                    
+                    client.publish('dashboardControllers/mobileApp/drop','')                    
                 }
                 else if(topic == "mobileApp/dashboardControllers/disconnect"){
                     clear();
@@ -475,7 +488,9 @@ export default {
                 playersPolygons.push(leaflet.polygon(playersPolygonsCoord[numPlayers.value-1], {color: playerColors[actualPlayer.value]}).addTo(map));
                 for(let i = 0; i<numPlayers.value-1; i++){
                     playersPolygons.push(leaflet.polygon(playersPolygonsCoord[i], {color: playerColors[i]}).addTo(map));
-                }               
+                }
+                finalBasePolygon.remove(map);
+                leaflet.polygon(finalBase, {color: '#D301F9', fillColor: '#D301F9', fillOpacity: 0.5}).addTo(map);               
                 buttonFinishDisabled.value = false;
                 Swal.fire('Sector set for player: '+players.value[actualPlayer.value]);   
             }
@@ -534,7 +549,8 @@ export default {
             for(let i = 0; i<numPlayers.value; i++){
                 playersPolygons.push(leaflet.polygon(playersPolygonsCoord[i], {color: playerColors[i]}).addTo(map));
             } 
-
+            finalBasePolygon.remove(map);
+            leaflet.polygon(finalBase, {color: '#D301F9', fillColor: '#D301F9', fillOpacity: 0.5}).addTo(map);
             buttonFinishDisabled.value = false;
         }
 
