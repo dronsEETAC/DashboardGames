@@ -175,10 +175,13 @@ export default {
             client.subscribe("mobileApp/dashboardControllers/disconnect");
             client.subscribe("mobileApp/dashboardControllers/direction");
             client.subscribe("mobileApp/dashboardControllers/drop");
+            client.subscribe("autopilotService/mobileApp/telemetryInfo");
 
             client.on('message', (topic, message) => {
-                if(topic=="autopilotService/mobileApp/telemetryInfo"){
+                console.log(topic)
+                if(topic=="autopilotService/mobileApp/telemetryInfo"){                    
                     let telemetryInfo = JSON.parse(message);
+                    console.log(telemetryInfo);
                     practicePointLat = telemetryInfo.lat;
                     practicePointLong = telemetryInfo.lon;
                     practicePoint = [practicePointLat, practicePointLong];
