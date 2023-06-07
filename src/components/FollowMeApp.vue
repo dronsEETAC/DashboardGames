@@ -1,177 +1,134 @@
 <template>
-    <div>
-      <b-button variant="info" @click="arm">Connect</b-button>
-      <b-button variant="success" @click="takeoff">Take off</b-button>
-      <b-button variant="warning" @click="goToWaypoint">Go to waypoint</b-button>
-      <b-button variant="danger" @click="rtl">RTL</b-button>
+    <div style="text-align: center; margin-bottom: 40px; margin-top: 20px;">
+      <h2>Dashboard for Follow Game</h2>
+    </div>    
+    <div style="display:flex; justify-content: center;">
+      <b-button v-if="!connected" variant="info" @click="connect" style="margin-left: 5%; margin-right: 5%; margin-bottom: 5px; width:70%">Connect</b-button>
+      <b-button v-if="connected" variant="success" style="margin-left: 5%; margin-right: 5%; margin-bottom: 5px; width:70%">Connected</b-button>
+      <b-button v-if="!flying" variant="info" @click="takeoff" style="margin-left: 5%; margin-right: 5%; margin-bottom: 5px; width:70%" :disabled="!connected">Take off</b-button>
+      <b-button v-if="flying" variant="success" style="margin-left: 5%; margin-right: 5%; margin-bottom: 5px; width:70%">Flying...</b-button>
+      <b-button v-if="!returning" variant="info" @click="rtl" style="margin-left: 5%; margin-right: 5%; margin-bottom: 5px; width:70%" :disabled="!flying">Return to Launch</b-button>
+      <b-button v-if="returning" variant="success" style="margin-left: 5%; margin-right: 5%; margin-bottom: 5px; width:70%">Returning...</b-button>
+    </div>
+    <div v-if="flying && !returning">
+      <h2>Now following: {{ followingName }}</h2>
+    </div>
+    <div style="display: flex">
+      <div style="width:80%; margin-left: 10px; margin-right: 5px;">
+        <MapsFollowMe @connected="connected = true" @flying="flying = true" @returning="returning = true" @onHearth="resetButtons()"></MapsFollowMe>
+      </div>      
+      <div style="width:20%; margin-left: 5px; margin-right: 10px; margin-top: 20px;">
+        <table class="myTable">
+          <tr>
+            <th>
+              Players:
+            </th>
+          </tr>
+          <tr v-for="(name, index) in players" :key="index">
+            <td>
+              {{ name }}
+            </td>
+          </tr>
+        </table>
+      </div>      
     </div>
   </template>
   
   <script>
-  import { onMounted, defineComponent, ref, inject } from 'vue';
+  import { onMounted, defineComponent, inject, ref } from 'vue';
   import Swal from 'sweetalert2'
+  import MapsFollowMe from './MapsFollowMe'
   
   export default defineComponent({
-    
+    components: {
+        MapsFollowMe
+    },   
 
     setup () {
       const emitter = inject('emitter');
       let client = inject('mqttClient');
-      let waypoints = [[41.2763088, 1.9882518],[41.2764448, 1.9882049],[41.2765214, 1.9886005],[41.2765960, 1.9890350],[41.2764952, 1.9890685],[41.2763571, 1.9891343],[41.2762735, 1.9887453],[41.2761858, 1.9883336],[41.2763692, 1.9885804],[41.2764201, 1.9892127],[41.2764861, 1.9880600],[41.2762412, 1.9885468]]
-      let index = 0;
-      let droneLabLimits = [[41.2762029, 1.9883457],[41.2764307, 1.9882290],[41.2765738, 1.9890122],[41.2763682, 1.9891074]]; //començo vaig a l'esquerra, dalt esquerra, dalt dreta, baix dreta
-      //recta 1: y = mx + n; 41.2762049 = m1.9883443 + n; 41.2764327= m1.9882290 + n; -0,0002278 = 0,0001153m; m = -1,9757155247181266261925; n = 37,34825779800520381613191;
-      
-      let recta01m = (droneLabLimits[0][0]-droneLabLimits[1][0])/(droneLabLimits[0][1]-droneLabLimits[1][1]);
-      let recta01n = droneLabLimits[0][0] - recta01m*droneLabLimits[0][1];
+      let connected = ref(false);
+      let flying = ref(false);
+      let returning = ref(false);
 
-      let recta12m = (droneLabLimits[1][0]-droneLabLimits[2][0])/(droneLabLimits[1][1]-droneLabLimits[2][1]);
-      let recta12n = droneLabLimits[1][0] - recta12m*droneLabLimits[1][1];
+      let players = ref([])
+      let followingName = ref("")
 
-      let recta23m = (droneLabLimits[2][0]-droneLabLimits[3][0])/(droneLabLimits[2][1]-droneLabLimits[3][1]);
-      let recta23n = droneLabLimits[2][0] - recta23m*droneLabLimits[2][1];
 
-      let recta30m = (droneLabLimits[3][0]-droneLabLimits[0][0])/(droneLabLimits[3][1]-droneLabLimits[0][1]);
-      let recta30n = droneLabLimits[3][0] - recta30m*droneLabLimits[3][1];
+      onMounted (() => {
 
-      function arm(){
-        client.publish('dashboardFollowme/autopilotService/connect');
+        client.subscribe("+/dashboardFollowme/#");
+
+        emitter.on('following', (index) => {
+          followingName.value = players.value[index]
+        })
+
+        client.on('message', (topic, message) => {
+
+          if(topic=="mobileApp/dashboardFollowme/username"){
+            let success = InputUsername(message.toString());
+            let newTopic = 'dashboardFollowme/mobileApp/'+message.toString()+'/create';                   
+            client.publish(newTopic, success);            
+          }
+
+          if(topic=="mobileApp/dashboardFollowme/sendList"){
+            client.publish('dashboardFollowme/mobileApp/updateList', JSON.stringify(players.value))            
+          }
+
+
+        })
+      })
+
+      function connect(){
+        if(players.value.length < 2){
+          Swal.fire("There must be at least 2 players to start")
+        }
+        else{
+          client.publish('dashboardFollowme/autopilotService/connect');
+        }        
       }
   
       function takeoff(){
         client.publish('dashboardFollowme/autopilotService/armAndTakeoff')
-      }
-  
-      function goToWaypoint(){    
-                     
-        let waypoint = waypoints[index];
-        let newRectam;
-        let newRectan;
-        let sector;
-        let intersectionWaypoint;
-        let newlat;
-        let newlon;
-        if(waypoint[0]<(recta01m*waypoint[1]+recta01n)){
-          if(waypoint[0]>(recta12m*waypoint[1]+recta12n)){
-            sector = 2;
-            intersectionWaypoint = droneLabLimits[1];
-          }
-          else if(waypoint[0]<(recta30m*waypoint[1]+recta30n)){
-            sector = 8;
-            intersectionWaypoint = droneLabLimits[0];
-          }
-          else{
-            sector = 1;
-            newRectam = -1/recta01m;
-            newRectan = waypoint[0]-newRectam*waypoint[1];
-            newlon = (newRectan-recta01n)/(recta01m-newRectam);
-            newlat = recta01m*newlon + recta01n;
-            intersectionWaypoint = [newlat, newlon];
-          }
-        }
-        else if(waypoint[0]>(recta23m*waypoint[1]+recta23n)){
-          if(waypoint[0]>(recta12m*waypoint[1]+recta12n)){
-            sector = 4;
-            intersectionWaypoint = droneLabLimits[2];
-          }
-          else if(waypoint[0]<(recta30m*waypoint[1]+recta30n)){
-            sector = 6;
-            intersectionWaypoint = droneLabLimits[3];
-          }
-          else{
-            sector = 5;
-            newRectam = -1/recta23m;
-            newRectan = waypoint[0]-newRectam*waypoint[1];
-            newlon = (newRectan-recta23n)/(recta23m-newRectam);
-            newlat = recta23m*newlon + recta23n;
-            intersectionWaypoint = [newlat, newlon];
-          }
-        }
-        else if(waypoint[0]>(recta12m*waypoint[1]+recta12n)){
-          sector = 3;
-          newRectam = -1/recta12m;
-          newRectan = waypoint[0]-newRectam*waypoint[1];
-          newlon = (newRectan-recta12n)/(recta12m-newRectam);
-          newlat = recta12m*newlon + recta12n;
-          intersectionWaypoint = [newlat, newlon];
-        }
-        else if(waypoint[0]<(recta30m*waypoint[1]+recta30n)){
-          sector = 7;
-          newRectam = -1/recta30m;
-          newRectan = waypoint[0]-newRectam*waypoint[1];
-          newlon = (newRectan-recta30n)/(recta30m-newRectam);
-          newlat = recta30m*newlon + recta30n;
-          intersectionWaypoint = [newlat, newlon];
-        }
-        else if(inside(waypoint, droneLabLimits)){
-          sector = 0;
-          intersectionWaypoint = waypoint;
-        }
-        else {
-          sector = -1;
-        }
-
-        if(sector!=-1){
-          let heading;
-          if(sector!=0){
-            let headingCos = (180/Math.PI)*Math.acos((waypoint[0]-intersectionWaypoint[0])/Math.sqrt(Math.pow((waypoint[0]-intersectionWaypoint[0]),2)+Math.pow((waypoint[1]-intersectionWaypoint[1]),2)));
-            let headingSin = (180/Math.PI)*Math.asin((waypoint[1]-intersectionWaypoint[1])/Math.sqrt(Math.pow((waypoint[0]-intersectionWaypoint[0]),2)+Math.pow((waypoint[1]-intersectionWaypoint[1]),2)));
-            
-            if(waypoint[1]-intersectionWaypoint[1] > 0){ // 0 a 180
-              heading = headingCos;
-            }
-            else if(waypoint[1]-intersectionWaypoint[1] < 0){ // 180 a 360
-              heading = 360 - headingCos;
-            } 
-          }
-          else{
-            heading = 0;
-          }
-          
-
-          let waypointJSON = {    
-            waypoint:{
-              lat: intersectionWaypoint[0],
-              lon: intersectionWaypoint[1]
-            },   
-            heading: heading           
-          }
-          client.publish('dashboardFollowme/autopilotService/goToWaypoint',JSON.stringify(waypointJSON))
-          console.log(waypointJSON);     
-          console.log(sector);     
-        }
-        index = index + 1;
-        
-
+      }  
+      
+      function rtl(){
+        client.publish('dashboardFollowme/autopilotService/returnToLaunch')
       }
 
-      function inside(point, vs) {
-            // ray-casting algorithm
-            
-            var x = point[0], y = point[1];
-            
-            var inside = false;
-            for (var i = 0, j = vs.length - 1; i < vs.length; j = i++) {
-                var xi = vs[i][0], yi = vs[i][1];
-                var xj = vs[j][0], yj = vs[j][1];
-                
-                var intersect = ((yi > y) != (yj > y)) && (x < (xj - xi) * (y - yi) / (yj - yi) + xi);
-                if (intersect) { 
-                    inside = !inside;
-                }
-            }            
-            return inside;
-        }
+      function resetButtons(){
+        connected.value = true;
+        flying.value = false;
+        returning.value = false;
+      }
 
-        function rtl(){
-          client.publish('dashboardFollowme/autopilotService/connect')
-        }
+      function InputUsername(username){  
+        let nameTaken = false;
+        for(var i = 0; i<players.value.length; i++){
+          if(username == players.value[i]){
+            nameTaken = true;
+          }
+        }   
+        if(!nameTaken){
+          players.value.push(username);
+          emitter.emit('newPlayer',username);
+          return "ok"
+        } 
+        else{
+          return "error"
+        }   
+      }
   
       return {
-        arm,
+        connect,
         takeoff,
-        goToWaypoint,
-        rtl
+        rtl,
+        players,
+        resetButtons,
+        connected,
+        flying,
+        returning,
+        followingName
       }
     }
   });
@@ -189,6 +146,25 @@
       margin-top: 1%;
       margin-bottom: 1%;
     }
+    .myTable {
+      border-collapse: collapse;
+      border: 1px solid;
+      width: 100%
+    }
+
+    th, td {
+      padding-left: 15px;
+      padding-top: 10px;
+      padding-bottom: 10px;
+      text-align: left;
+    }
+
+    th {
+      background-color: #59c1d3;
+      color: black;
+    }
+
+    tr:nth-child(even) {background-color: #f2f2f2;}
   
   </style>
   

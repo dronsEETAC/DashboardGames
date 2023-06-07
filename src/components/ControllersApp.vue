@@ -2,20 +2,20 @@
     <h1 style="text-align: center">Dashboard for Controllers Game</h1>
     <div class ="main">
       <Top></Top>
-      <Maps></Maps>
+      <MapsControllers></MapsControllers>
     </div>
   </template>
   
   <script>
   import { onMounted, defineComponent, ref, inject } from 'vue';
-  import Maps from './Maps.vue';
+  import MapsControllers from './MapsControllers.vue';
   import Top from './Top.vue';
   import Swal from 'sweetalert2'
   
   export default defineComponent({
     components: {
       Top,
-      Maps
+      MapsControllers
     },
     setup () {  
 
