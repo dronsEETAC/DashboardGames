@@ -103,31 +103,37 @@ export default {
                         context.emit('connected');
                         state = 'connected';
                     }
-                    if(state=="connected" || state=="onHearth"){
+                    else if(state=="connected" || state=="onHearth"){
                         if(telemetryInfo.state == "flying"){
                             context.emit('flying');
                             state = 'flying';
-                            goToWaypoint(0);
                             playersTurn.value = players[0]
+                            client.publish('dashboardFollowme/mobileApp/yourTurn/'+players[0],'')
                         }                        
                     }
-                    if(state=="flying" && telemetryInfo.state == "returningHome" ){
+                    else if(state=="flying" && telemetryInfo.state == "returningHome" ){
                         context.emit('returning');
                         state = 'returning';
                     }
-                    if(state=="returningHome" && telemetryInfo.state == "onHearth"){
+                    else if(state=="returningHome" && telemetryInfo.state == "onHearth"){
                         context.emit('onHearth');
                         state = 'onHearth';
                     }                    
                 }
 
-                if(topic=="mobileApp/dashboardFollowme/position"){
+                else if(topic=="mobileApp/dashboardFollowme/position"){
                     let messageJSON = JSON.parse(message);
                     if(messageJSON['position']!=undefined && messageJSON['player']!=undefined){
                         updateWaypoint(messageJSON['player'], messageJSON['position']);
                         console.log(messageJSON['position'])
                     }
                                         
+                }
+
+                else if(topic == "mobileApp/dashboardFollowme/following"){
+                    console.log(message.toString())
+                    goToWaypoint(players.indexOf(message.toString()))
+                    emitter.emit('following', message.toString())
                 }
             })
         })
@@ -219,6 +225,7 @@ export default {
             let intersectionWaypoint;
             let newlat;
             let newlon;
+            console.log('inside ' + index)
             if(waypoint[0]<(recta01m*waypoint[1]+recta01n)){
                 if(waypoint[0]>(recta12m*waypoint[1]+recta12n)){
                     sector = 2;
@@ -302,9 +309,7 @@ export default {
                     },   
                     heading: heading           
                 }
-                client.publish('dashboardFollowme/autopilotService/goToWaypoint',JSON.stringify(waypointJSON))
-                client.publish('dashboardFollowme/mobileApp/following',players[index])
-                emitter.emit('following', index)
+                client.publish('dashboardFollowme/autopilotService/goToWaypoint',JSON.stringify(waypointJSON))                
             }
         } 
 

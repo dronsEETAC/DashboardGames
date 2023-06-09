@@ -59,8 +59,8 @@
 
         client.subscribe("+/dashboardFollowme/#");
 
-        emitter.on('following', (index) => {
-          followingName.value = players.value[index]
+        emitter.on('following', (data) => {
+          followingName.value = data
         })
 
         client.on('message', (topic, message) => {
@@ -72,7 +72,8 @@
           }
 
           if(topic=="mobileApp/dashboardFollowme/sendList"){
-            client.publish('dashboardFollowme/mobileApp/updateList', JSON.stringify(players.value))            
+            console.log(players.value)
+            client.publish('dashboardFollowme/mobileApp/updateList', JSON.stringify({players: players.value}))            
           }
 
 
@@ -85,6 +86,7 @@
         }
         else{
           client.publish('dashboardFollowme/autopilotService/connect');
+          console.log("sending connect")
         }        
       }
   
