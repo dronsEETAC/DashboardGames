@@ -3,19 +3,19 @@
       <h2>Dashboard for Follow Game</h2>
     </div>    
     <div style="display:flex; justify-content: center;">
-      <b-button v-if="!connected" variant="info" @click="connect" style="margin-left: 5%; margin-right: 5%; margin-bottom: 5px; width:70%">Connect</b-button>
-      <b-button v-if="connected" variant="success" style="margin-left: 5%; margin-right: 5%; margin-bottom: 5px; width:70%">Connected</b-button>
-      <b-button v-if="!flying" variant="info" @click="takeoff" style="margin-left: 5%; margin-right: 5%; margin-bottom: 5px; width:70%" :disabled="!connected">Take off</b-button>
-      <b-button v-if="flying" variant="success" style="margin-left: 5%; margin-right: 5%; margin-bottom: 5px; width:70%">Flying...</b-button>
-      <b-button v-if="!returning" variant="info" @click="rtl" style="margin-left: 5%; margin-right: 5%; margin-bottom: 5px; width:70%" :disabled="!flying">Return to Launch</b-button>
-      <b-button v-if="returning" variant="success" style="margin-left: 5%; margin-right: 5%; margin-bottom: 5px; width:70%">Returning...</b-button>
+      <b-button v-if="!connected" :variant="connectColor" @click="connect" class="myButtonConnect">{{connectText}}</b-button>
+      <b-button v-if="connected" variant="success" class="myButtonConnect">Connected</b-button>
+      <b-button v-if="!flying" :variant="takeoffColor" @click="takeoff"  class="myButtonConnect" :disabled="!connected">{{ takeoffText }}</b-button>
+      <b-button v-if="flying" variant="success"  class="myButtonConnect">Flying</b-button>
+      <b-button v-if="!returning" variant="info" @click="rtl" :disabled="!flying" class="myButtonConnect">Return to Launch</b-button>
+      <b-button v-if="returning" variant="success"  class="myButtonConnect">Returning...</b-button>
     </div>
     <div v-if="flying && !returning">
       <h2>Now following: {{ followingName }}</h2>
     </div>
     <div style="display: flex">
       <div style="width:80%; margin-left: 10px; margin-right: 5px;">
-        <MapsFollowMe @connected="connected = true" @flying="flying = true" @returning="returning = true" @onHearth="resetButtons()"></MapsFollowMe>
+        <MapsFollowMe @canConnect="canConnect = true" @connected="connected = true" @flying="flying = true" @returning="returning = true" @onHearth="resetButtons()"></MapsFollowMe>
       </div>      
       <div style="width:20%; margin-left: 5px; margin-right: 10px; margin-top: 20px;">
         <table class="myTable">
@@ -32,27 +32,39 @@
         </table>
       </div>      
     </div>
+    <div style="display:flex; justify-content: center;">
+      <div  style ="width:70%; height:350px display: flex; justify-content: center;">
+          <canvas style="width: 400px; height: 300px; border-style: solid;" id="output"></canvas>
+      </div>
+    </div>
   </template>
   
   <script>
   import { onMounted, defineComponent, inject, ref } from 'vue';
   import Swal from 'sweetalert2'
   import MapsFollowMe from './MapsFollowMe'
+  import * as cv from 'opencv.js'
   
   export default defineComponent({
     components: {
         MapsFollowMe
     },   
 
-    setup () {
+    setup (props, context) {
       const emitter = inject('emitter');
       let client = inject('mqttClient');
       let connected = ref(false);
       let flying = ref(false);
       let returning = ref(false);
+      let canConnect = ref(false);
 
       let players = ref([])
       let followingName = ref("")
+
+      let takeoffColor = ref("info");
+      let connectColor = ref("info");
+      let connectText = ref("Connect");
+      let takeoffText = ref("Take off");
 
 
       onMounted (() => {
@@ -63,7 +75,7 @@
           followingName.value = data
         })
 
-        client.on('message', (topic, message) => {
+        client.on('message', (topic, message) => {          
 
           if(topic=="mobileApp/dashboardFollowme/username"){
             let success = InputUsername(message.toString());
@@ -71,9 +83,19 @@
             client.publish(newTopic, success);            
           }
 
-          if(topic=="mobileApp/dashboardFollowme/sendList"){
+          else if(topic=="mobileApp/dashboardFollowme/sendList"){
             console.log(players.value)
             client.publish('dashboardFollowme/mobileApp/updateList', JSON.stringify({players: players.value}))            
+          }
+
+          else if(topic == "cameraService/dashboardFollowme/picture"){
+            const img = new Image();
+            img.src = "data:image/jpg;base64,"+message;
+            img.onload = () => {        
+              let dst = cv.imread(img);
+              cv.imshow ('output',dst);
+              console.log('picture')
+            }
           }
 
 
@@ -81,17 +103,37 @@
       })
 
       function connect(){
-        if(players.value.length < 2){
-          Swal.fire("There must be at least 2 players to start")
-        }
-        else{
-          client.publish('dashboardFollowme/autopilotService/connect');
-          console.log("sending connect")
-        }        
+          if(connected.value == false){
+            if(players.value.length < 2){              
+              Swal.fire("There must be at least 2 players to start")
+            }
+            else{
+              if(canConnect.value){
+                client.publish('dashboardFollowme/autopilotService/connect','');
+                connectColor.value = "warning"
+                connectText.value = "Connecting..."
+              }
+              else{
+                Swal.fire("Assign a position to players by clicking the markers")
+              }
+            } 
+          }
+          else if(connected.value == true && flying.value == false && returning.value == false){
+            client.publish('dashboardFollowme/autopilotService/disconnect');
+            connectColor.value = "info"
+            connectText.value = "Connect"
+            connected.value = false;
+          }
+          else{
+            Swal.fire("You can not disconnect if you are flying")
+          }    
+               
       }
   
       function takeoff(){
-        client.publish('dashboardFollowme/autopilotService/armAndTakeoff')
+        client.publish('dashboardFollowme/autopilotService/armAndTakeoff');
+        takeoffColor.value = "warning"
+        takeoffText.value = "Taking off..."
       }  
       
       function rtl(){
@@ -102,6 +144,8 @@
         connected.value = true;
         flying.value = false;
         returning.value = false;
+        takeoffColor.value = "info";
+        takeoffText.value = "Take off"
       }
 
       function InputUsername(username){  
@@ -130,7 +174,12 @@
         connected,
         flying,
         returning,
-        followingName
+        followingName,
+        takeoffColor,
+        takeoffText,
+        connectColor,
+        connectText,
+        canConnect
       }
     }
   });
@@ -143,10 +192,11 @@
       margin-right: 5px;
     }
     .myButtonConnect {
-      width : 900px;
-      color : white;
-      margin-top: 1%;
-      margin-bottom: 1%;
+      margin-left: 5%; 
+      margin-right: 5%; 
+      margin-bottom: 5px; 
+      width:70%;
+      height: 50px;
     }
     .myTable {
       border-collapse: collapse;

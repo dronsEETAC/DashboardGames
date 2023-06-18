@@ -1,14 +1,14 @@
 <template>
   <div style="display: flex; justify-content: center;">
-    <div style="width:80%">
+    <div style="width:80%;">
       <div v-if="!connected" class="row" style="text-align: center;">
         <h2 style="margin-top: 5%; margin-bottom: 5%;">What game do you want to play?</h2>
       </div>
       <div v-if = "!connected" class="row">
-        <b-button class = "myButtonConnect" style="margin-bottom: 3%;" @click = "toggle('controllers')" variant="success">Controllers Game</b-button>
+        <b-button style="margin-bottom: 3%; height: 100px; font-size: large;" @click = "toggle('controllers')" variant="success">Controllers Game</b-button>
       </div>
       <div v-if = "!connected" class="row">
-        <b-button class = "myButtonConnect" style="margin-bottom: 3%;" @click = "toggle('followme')" variant="success">Follow Me Game</b-button>
+        <b-button style="margin-bottom: 3%; height: 100px; font-size: large;" @click = "toggle('followme')" variant="success">Follow Me Game</b-button>
       </div>    
       <div v-if = "connected" class="row">
         <b-button style="width:900px; margin-bottom:2%; margin-left: 8%" @click = "toggle('home')" variant="danger">Exit</b-button>
@@ -58,12 +58,5 @@ export default defineComponent({
 </script>
 
 <style>
-  .myButtonConnect {
-    height: 100px;
-    color : white;
-    margin-top: 2%;
-    margin-bottom: 2%;
-    font-size: 90px;
-  }
 
 </style>

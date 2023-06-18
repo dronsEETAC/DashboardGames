@@ -5,15 +5,21 @@
                 <div id="map"></div>                
             </div>                             
         </div> 
-        
+        <ChoosePlayer v-if="choosingPlayer" @close = "close()" :players="playersToBeAssigned"></ChoosePlayer>
     </div>
 </template>
 
 <script>
 import {onMounted, inject, ref } from 'vue'
 import leaflet from 'leaflet'
+import ChoosePlayer from './ChoosePlayer.vue'
+import Swal from 'sweetalert2'
 
 export default {
+
+    components: {
+        ChoosePlayer
+    },
 
     setup (props, context) {
 
@@ -24,7 +30,9 @@ export default {
         const emitter = inject('emitter');
         let client = inject('mqttClient');
         let droneLab = [[41.27643580, 1.98821960],[41.27619490, 1.98833760],[41.27636320, 1.98911820],[41.27658190, 1.98901760]];
-        let droneLabLimits = [[41.2762029, 1.9883457],[41.2764307, 1.9882290],[41.2765738, 1.9890122],[41.2763682, 1.9891074]]; //començo vaig a l'esquerra, dalt esquerra, dalt dreta, baix dreta
+        let droneLabLimits = [[41.2762327, 1.9883584],[41.2764141, 1.9882706],[41.2765547, 1.9889887],[41.2763788, 1.9890692]]; //començo baix a l'esquerra, dalt esquerra, dalt dreta, baix dreta
+        let fixedPoints = [[41.2763486,1.9882531],[41.2764405, 1.9882089], [41.2765622,1.9888801],[41.2765925,1.9890236],[41.2764972,1.9890632],[41.2763632,1.9891322],[41.2762856,1.9887809],[41.2761835, 1.9883259]]
+        let fixedPointsMarkers = [];        
         let drone;
         let northLine;
         let southLine;
@@ -63,8 +71,14 @@ export default {
         //let waypoints = [[41.2763088, 1.9882518],[41.2764448, 1.9882049],[41.2765214, 1.9886005],[41.2765960, 1.9890350],[41.2764952, 1.9890685],[41.2763571, 1.9891343],[41.2762735, 1.9887453],[41.2761858, 1.9883336],[41.2763692, 1.9885804],[41.2764201, 1.9892127],[41.2764861, 1.9880600],[41.2762412, 1.9885468]]
         let waypoints = [];
         let players = [];        
-        let playersCircles = [];
+        let playersMarkers = [];
         let playersTurn = ref("");
+
+        let choosingPlayer = ref(false);
+        let indexPointChoosing = 0;
+        let playersToBeAssigned = ref([]) 
+        let canConnect = false;
+           
 
         onMounted (() => {
             
@@ -74,17 +88,39 @@ export default {
             let token = "pk.eyJ1Ijoiam9hbmEtb3AiLCJhIjoiY2xkdTRtOHhmMDJjaDN2bXY0Zjl3b2pqeCJ9.6zfF7e0G7vK8Vyy4YE8mxw";
             leaflet.tileLayer('https://api.mapbox.com/v4/mapbox.satellite/{z}/{x}/{y}@2x.png?access_token='+token, {
                  maxZoom: 21,
-                 minZoom: 20,
+                 minZoom: 16,
                  attribution: 'MapBox'
              }).addTo(map);
 
             leaflet.polygon(droneLab, {color: 'white'}).addTo(map);
             paintDrone();
+            
+            // Loop to add fixed points in map
+            for(let i = 0; i<fixedPoints.length; i++){
+                fixedPointsMarkers.push(leaflet.marker(fixedPoints[i]).on('click', onMarkerClick).addTo(map))
+            }
 
             emitter.on('newPlayer', (data) => {
-                players.push(data);
-                waypoints.push([0,0]);
+                players.push({name: data, point: [], marker: undefined});
+                playersToBeAssigned.value.push(data);
+            })          
+
+            // quan no tenim gps
+            emitter.on('playerChosen', (data) => {                
+                for(let i = 0; i<players.length; i++){
+                    if(players[i].name == data.player){
+                        players[i].point = fixedPoints[indexPointChoosing];
+                        players[i].marker = fixedPointsMarkers[indexPointChoosing].bindTooltip(data.player, {direction: 'center', permanent: true})
+                    }
+                }
+                indexPointChoosing = 0;
+                if(canConnect == false){
+                    context.emit("canConnect"); 
+                    canConnect = true;
+                }
+                              
             })
+    
 
             client.subscribe("+/dashboardFollowme/#");
 
@@ -107,15 +143,15 @@ export default {
                         if(telemetryInfo.state == "flying"){
                             context.emit('flying');
                             state = 'flying';
-                            playersTurn.value = players[0]
-                            client.publish('dashboardFollowme/mobileApp/yourTurn/'+players[0],'')
+                            playersTurn.value = players[0].name
+                            client.publish('dashboardFollowme/mobileApp/yourTurn/'+players[0].name,'')
                         }                        
                     }
                     else if(state=="flying" && telemetryInfo.state == "returningHome" ){
                         context.emit('returning');
                         state = 'returning';
                     }
-                    else if(state=="returningHome" && telemetryInfo.state == "onHearth"){
+                    else if(state=="returning" && telemetryInfo.state == "onHearth"){
                         context.emit('onHearth');
                         state = 'onHearth';
                     }                    
@@ -124,16 +160,23 @@ export default {
                 else if(topic=="mobileApp/dashboardFollowme/position"){
                     let messageJSON = JSON.parse(message);
                     if(messageJSON['position']!=undefined && messageJSON['player']!=undefined){
-                        updateWaypoint(messageJSON['player'], messageJSON['position']);
+                        updatePoint(messageJSON['player'], messageJSON['position']);
                         console.log(messageJSON['position'])
-                    }
-                                        
+                        if(canConnect == false){
+                            context.emit("canConnect"); 
+                            canConnect = true;
+                        }
+                    }                                        
                 }
 
                 else if(topic == "mobileApp/dashboardFollowme/following"){
-                    console.log(message.toString())
-                    goToWaypoint(players.indexOf(message.toString()))
-                    emitter.emit('following', message.toString())
+                    for(let i = 0; i <players.length; i++){
+                        if(players[i].name == message.toString()){
+                            goToPoint(i)
+                            emitter.emit('following', message.toString())
+                        }
+                    }
+                    
                 }
             })
         })
@@ -217,8 +260,8 @@ export default {
         }
 
        
-        function goToWaypoint(index){
-            let waypoint = waypoints[index];
+        function goToPoint(index){
+            let waypoint = players[index].point;
             let newRectam;
             let newRectan;
             let sector;
@@ -309,29 +352,87 @@ export default {
                     },   
                     heading: heading           
                 }
+                console.log(waypointJSON)
                 client.publish('dashboardFollowme/autopilotService/goToWaypoint',JSON.stringify(waypointJSON))                
             }
         } 
 
-        function updateWaypoint(username,waypoint){
-            waypoints[players.indexOf(username)] = waypoint;                        
-            paintWaypoint(players.indexOf(username));
+        function updatePoint(username,waypoint){
+            for(let i = 0; i < players.length; i++){
+                if(username == players[i].name){
+                    players[i].point = waypoint;                        
+                    paintPoint(i);
+                }
+                
+            }
+            
+            
         }
 
-        function paintWaypoint(index){
-            if(playersCircles[index] == undefined){
-                playersCircles.push(leaflet.circle(waypoints[index], 0.8, {stroke: false, fill: true, fillColor: "blue", fillOpacity: 1}).addTo(map));
+        function paintPoint(index){
+            if(players[index].marker == undefined){
+                players[index].marker = leaflet.marker(players[index].point).addTo(map).bindTooltip(players[index].name, {direction: 'center', permanent: true})
             }
             else{
-                playersCircles[index].remove(map)
-                playersCircles[index] = leaflet.circle(waypoints[index], 0.8, {stroke: false, fill: true, fillColor: "blue", fillOpacity: 1}).addTo(map);
+                players[index].marker.remove(map);
+                players[index].marker = leaflet.marker(players[index].point).addTo(map).bindTooltip(players[index].name, {direction: 'center', permanent: true})
             }            
             
         }
 
+        function onMarkerClick(e){
+            let found = false;
+            if(indexPointChoosing == 0){
+                while(!found){
+                    if(fixedPoints[indexPointChoosing][0] == e.latlng.lat && fixedPoints[indexPointChoosing][1] == e.latlng.lng){
+                        found = true;                    
+                    }
+                    else{
+                        indexPointChoosing++;
+                    }
+                }
+                if(found){
+                    let alreadyAssigned = false
+                    playersToBeAssigned.value = [];
+                    for(let i = 0; i<players.length; i++){
+                        if(players[i].point == fixedPoints[indexPointChoosing]){
+                            alreadyAssigned = true;
+                        }
+                        console.log(players)
+                        if(players[i].point.length == 0){
+                            playersToBeAssigned.value.push(players[i].name)
+                        }
+                    }
+                    if(!alreadyAssigned ){
+                        if(playersToBeAssigned.value.length != 0){
+                            choosingPlayer.value = true;
+                        }
+                        else{
+                            Swal.fire("No players left to assign")
+                            indexPointChoosing = 0;
+                        }
+                    }
+                    else{
+                        Swal.fire("This point is already assigned")
+                        indexPointChoosing = 0;
+                    }                
+                }
+            }
+            
+
+        }
+
+        function close(){
+            choosingPlayer.value = false;
+            indexPointChoosing = 0;
+        }
+
         return {
             map,
-            popup
+            popup,
+            choosingPlayer,
+            playersToBeAssigned,
+            close
         }
     }
 }
