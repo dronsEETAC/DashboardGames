@@ -67,6 +67,7 @@
       let takeoffText = ref("Take off");
 
 
+
       onMounted (() => {
 
         client.subscribe("+/dashboardFollowme/#");
@@ -96,7 +97,7 @@
               cv.imshow ('output',dst);
               console.log('picture')
             }
-          }
+          }       
 
 
         })
@@ -164,6 +165,8 @@
           return "error"
         }   
       }
+
+      
   
       return {
         connect,

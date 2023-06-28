@@ -78,6 +78,9 @@ export default {
         let indexPointChoosing = 0;
         let playersToBeAssigned = ref([]) 
         let canConnect = false;
+        let followingName;
+        let intervalYourTurn;
+        let intervalGoToWaypoint;
            
 
         onMounted (() => {
@@ -174,10 +177,20 @@ export default {
                         if(players[i].name == message.toString()){
                             goToPoint(i)
                             emitter.emit('following', message.toString())
+                            followingName = message.toString();
+                            clearInterval(intervalYourTurn);
                         }
                     }
                     
                 }
+
+                else if(topic=="autopilotService/dashboardFollowme/waypointReached"){
+                    client.publish('dashboardFollowme/mobileApp/yourTurn/'+followingName,'')
+                    clearInterval(intervalGoToWaypoint);
+                    resendYourTurn(followingName);
+                }
+
+                
             })
         })
 
@@ -353,7 +366,8 @@ export default {
                     heading: heading           
                 }
                 console.log(waypointJSON)
-                client.publish('dashboardFollowme/autopilotService/goToWaypoint',JSON.stringify(waypointJSON))                
+                client.publish('dashboardFollowme/autopilotService/goToWaypoint',JSON.stringify(waypointJSON)) 
+                resendGoToWaypoint();               
             }
         } 
 
@@ -425,6 +439,28 @@ export default {
         function close(){
             choosingPlayer.value = false;
             indexPointChoosing = 0;
+        }
+
+        function resendYourTurn(name){
+            let seconds = 0;
+            intervalYourTurn = setInterval(() => {
+            seconds = seconds + 1;
+            if(seconds == 10){
+                client.publish('dashboardFollowme/mobileApp/yourTurn/'+name,'');
+                seconds = 0;
+            }
+            }, 1000);
+        }
+
+        function resendGoToWaypoint(){
+            let seconds = 0;
+            intervalGoToWaypoint = setInterval(() => {
+            seconds = seconds + 1;
+            if(seconds == 10){
+                client.publish();
+                seconds = 0;
+            }
+            }, 1000);
         }
 
         return {
