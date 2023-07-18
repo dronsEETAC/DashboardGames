@@ -25,6 +25,7 @@
     "socket.io-client": "^4.6.0",
     "turf": "^3.0.14",
     "vue": "^3.0.0",
+    "vue-router": "^4.2.4",
     "vue-sweetalert2": "^5.0.5"
   },
   "devDependencies": {

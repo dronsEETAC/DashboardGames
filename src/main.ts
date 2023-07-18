@@ -4,6 +4,8 @@ import App from './App.vue'
 import BootstrapVue3 from 'bootstrap-vue-3'
 import BootstrapVueIcons from 'bootstrap-vue-3' // icons
 
+import {createRouter, createWebHashHistory} from 'vue-router'
+
 // Optional, since every component import their Bootstrap functionality
 // the following line is not necessary
 // import 'bootstrap'
@@ -13,9 +15,24 @@ import 'bootstrap-vue-3/dist/bootstrap-vue-3.css'
 
 import 'bootstrap-icons/font/bootstrap-icons.css'
 
+import Home from "./components/Home.vue"
+import ModeDroneCircus from "./components/DroneCircus/ModeDroneCircus.vue"
+import MainDroneCircus from "./components/DroneCircus/MainDroneCircus.vue"
+
 // https://stackoverflow.com/questions/66537320/vue-3-event-bus-with-composition-api
 import mitt from 'mitt';                  // Import mitt
 const emitter = mitt();                   // Initialize mitt
+
+const routes = [
+    { path: '/', component: Home },
+    { path: '/mode', component: ModeDroneCircus },
+    { path: '/main/:mode', component: MainDroneCircus }
+]
+
+const router = createRouter({
+    history: createWebHashHistory(),
+    routes, // short for `routes: routes`
+  })
 
 // https://www.emqx.com/en/blog/how-to-use-mqtt-in-vue
 import mqtt, { MqttClient } from 'mqtt'
@@ -39,4 +56,5 @@ catch(error){
 
 app.use(BootstrapVue3)
 app.use(BootstrapVueIcons)
+app.use(router)
 app.mount('#app')
