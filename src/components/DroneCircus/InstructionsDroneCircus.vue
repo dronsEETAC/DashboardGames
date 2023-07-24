@@ -21,7 +21,7 @@ export default defineComponent({
 
         const emitter = inject('emitter');
 
-        emitter.on ('difficulty', (data) => {
+        emitter.on ('difficultyCircus', (data) => {
             difficulty.value = data.level;
 
             if(mode.value == "fingers"){

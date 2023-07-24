@@ -27,7 +27,7 @@ export default defineComponent({
         const emitter = inject('emitter');
                 
         function select(value){
-            emitter.emit('playerChosen', {'player':value}); // objecte json
+            emitter.emit('playerChosenFollowMe', {'player':value}); // objecte json
             context.emit('close')
         }   
 

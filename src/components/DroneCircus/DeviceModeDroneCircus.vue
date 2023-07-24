@@ -27,7 +27,7 @@ export default defineComponent({
         const emitter = inject('emitter');
 
         function select(value){
-            emitter.emit('selectedDevice', {'device':value}); // objecte json
+            emitter.emit('selectedDeviceCircus', {'device':value}); // objecte json
             context.emit('close')
         }
         return {

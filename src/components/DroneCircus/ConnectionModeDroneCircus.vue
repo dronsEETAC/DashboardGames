@@ -28,7 +28,7 @@ export default defineComponent({
         const emitter = inject('emitter');
 
         function select(value){
-            emitter.emit('selectedConnection', {'mode':value}); // objecte json
+            emitter.emit('selectedConnectionCircus', {'mode':value}); // objecte json
             context.emit('close')
         }
         return {

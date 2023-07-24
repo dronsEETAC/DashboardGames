@@ -25,7 +25,7 @@ export default defineComponent({
         this.direction = 'Stop'
         this.mode = this.$route.params.mode;
 
-        this.emitter.on('videoCapture', (cap) => {
+        this.emitter.on('videoCaptureCircus', (cap) => {
             if(cap.capturing && !cap.mobile){                
                 this.startCapture();
             }
@@ -34,7 +34,7 @@ export default defineComponent({
             }
         })
 
-        this.emitter.on('direction', (data) => {
+        this.emitter.on('directionCircus', (data) => {
             this.direction = data.direction;
         })
 

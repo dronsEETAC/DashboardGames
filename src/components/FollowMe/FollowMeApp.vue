@@ -1,6 +1,6 @@
 <template>
     <div style="text-align: center; margin-bottom: 40px; margin-top: 20px;">
-      <h2>Dashboard for Follow Game</h2>
+      <h2>Dashboard for Follow Me Game</h2>
     </div>    
     <div style="display:flex; justify-content: center;">
       <b-button v-if="!connected" :variant="connectColor" @click="connect" class="myButtonConnect">{{connectText}}</b-button>
@@ -32,7 +32,7 @@
         </table>
       </div>      
     </div>
-    <div style="display:flex; justify-content: center;">
+    <div style="display:flex; justify-content: center; margin-top: 10px;">
       <div  style ="width:70%; height:350px display: flex; justify-content: center;">
           <canvas style="width: 400px; height: 300px; border-style: solid;" id="output"></canvas>
       </div>
@@ -72,7 +72,7 @@
 
         client.subscribe("+/dashboardFollowme/#");
 
-        emitter.on('following', (data) => {
+        emitter.on('followingFollowMe', (data) => {
           followingName.value = data
         })
 
@@ -158,7 +158,7 @@
         }   
         if(!nameTaken){
           players.value.push(username);
-          emitter.emit('newPlayer',username);
+          emitter.emit('newPlayerFollowMe',username);
           return "ok"
         } 
         else{

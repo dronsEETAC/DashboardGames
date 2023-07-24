@@ -45,8 +45,7 @@ try{
     client = mqtt.connect('ws://broker.hivemq.com:8000/mqtt') //proba a connectar-se
     //client = mqtt.connect('mqtt://localhost:8000')
     client.on('connect', () => { //si el commando que rep es 'connect', s'ha connectat bé
-        console.log("Connection succeeded!");
-        client.publish("dashboardWebApp/mobileApp/Connect","");        
+        console.log("Connection succeeded!");        
         app.provide('mqttClient', client); // com s'ha connectet proveim el client als altres components pk el puguin utilitzar
     })
 }

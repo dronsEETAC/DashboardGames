@@ -28,7 +28,7 @@ export default defineComponent({
         const emitter = inject('emitter');
 
         function select(value){
-            emitter.emit('selectedLevel', {'level':value}); // objecte json
+            emitter.emit('selectedLevelCircus', {'level':value}); // objecte json
             context.emit('close')
         }
         return {

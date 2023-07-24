@@ -56,6 +56,7 @@ export default defineComponent({
         let levelSelectorShowing = ref(false)
         let connectionModeSelectorShowing = ref(false)
         let deviceModeShowing = ref(true)
+
         let selectedLevel = ref("")
         let difficulty = ref("")
         let mode = ref("")  
@@ -64,16 +65,22 @@ export default defineComponent({
         let state = ref("idle");
 
         let mobileConnected = false; 
+
+        emitter.on('selectedDeviceCircus', (data) => {
+            if(data.device == 'mobile'){
+                client.subscribe('mobileApp/droneCircusWebApp/#'); 
+            }
+        })
         
-        emitter.on('selectedLevel', (data) => {
+        emitter.on('selectedLevelCircus', (data) => {
             selectedLevel.value = data.level;                       
         })
 
-        emitter.on('difficulty', (data) => {
+        emitter.on('difficultyCircus', (data) => {
             difficulty.value = data.level;                      
         })
 
-        emitter.on('selectedConnection', (data) => {
+        emitter.on('selectedConnectionCircus', (data) => {
             connectionMode.value = data.mode;
             let external_broker_address;         
             if(connectionMode.value == "Global"){
@@ -86,7 +93,7 @@ export default defineComponent({
             createClient(external_broker_address, port);
         })
         
-        emitter.on('direction', (data) => {            
+        emitter.on('directionCircus', (data) => {            
             if(state.value != "returning" && state.value != "practising" && !mobileConnected){
                 if(data.direction == "Drop"){
                     clientAutopilot.publish('droneCircusWebApp/autopilotService/drop');
@@ -104,20 +111,18 @@ export default defineComponent({
         onMounted(() => {
             mode.value = route.params.mode;
             console.log(mode.value);
-            client.publish("droneCircusWebApp/imageService/Connect","");
-            client.subscribe('mobileApp/droneCircusWebApp/#');  
-            client.subscribe('mobileApp/autopilotService/returnToLaunch');              
+            client.publish("droneCircusWebApp/imageService/Connect","");            
             client.on('message', (topic,message) => {
                 if(topic == 'mobileApp/droneCircusWebApp/connect'){
                     mobileConnected = true;                   
-                    emitter.emit('mobileState', {'state': 'connected'})
+                    emitter.emit('mobileStateCircus', {'state': 'connected'})
                     client.publish('droneCircusWebApp/mobileApp/connected', mode.value)
                     console.log(mode.value)
                 }
                 else if(topic == 'mobileApp/droneCircusWebApp/finishPractice'){
-                    emitter.emit('videoCapture', {'capturing':false, 'mobile': mobileConnected}); 
+                    emitter.emit('videoCaptureCircus', {'capturing':false, 'mobile': mobileConnected}); 
                     state.value = 'disconnected';
-                    emitter.emit('finishPractice');
+                    emitter.emit('finishPracticeCircus');
                 }
                 else if(topic == 'autopilotService/mobileApp/telemetryInfo'){
                     processMessage(message);
@@ -155,7 +160,7 @@ export default defineComponent({
                 client.subscribe("imageService/mobileApp/code")
                 console.log('practice mobile started')
             } 
-            emitter.emit('videoCapture',  {'capturing':true, 'state': state.value, 'mobile': mobileConnected}); 
+            emitter.emit('videoCaptureCircus',  {'capturing':true, 'state': state.value, 'mobile': mobileConnected}); 
                    
              
         }
@@ -166,6 +171,7 @@ export default defineComponent({
             }
             else{
                 client.subscribe("autopilotService/mobileApp/#");
+                client.subscribe('mobileApp/autopilotService/returnToLaunch'); 
             }            
         }
 
@@ -238,10 +244,10 @@ export default defineComponent({
         }
 
         function stopPractice(){
-            emitter.emit('videoCapture', {'capturing':false, 'mobile': mobileConnected}); 
+            emitter.emit('videoCaptureCircus', {'capturing':false, 'mobile': mobileConnected}); 
             state.value = 'disconnected';            
             if(mobileConnected){
-                emitter.emit('finishPractice')
+                emitter.emit('finishPracticeCircus')
                 client.publish('droneCircusWebApp/mobileApp/finishPractice');
             }
            
@@ -254,35 +260,35 @@ export default defineComponent({
                 let long = telemetryInfo.lon;
                 if (stateAutopilot == "connected" && state.value == "disconnected"){                            
                     state.value = "connected";
-                    emitter.emit('autopilotState', {'state': state.value});
-                    emitter.emit('autopilotPosition',{'lat': lat, 'long': long});                                                  
+                    emitter.emit('autopilotStateCircus', {'state': state.value});
+                    emitter.emit('autopilotPositionCircus',{'lat': lat, 'long': long});                                                  
                 }
                 else if(stateAutopilot == "armed" && state.value == "connected"){
                     console.log("armed");
                     state.value = "armed";
-                    emitter.emit('autopilotState', {'state': state.value});
+                    emitter.emit('autopilotStateCircus', {'state': state.value});
                 }
                 else if(stateAutopilot == "flying" && state.value != "flying"){
                     state.value = "flying";
-                    emitter.emit('autopilotState', {'state': state.value})
-                    emitter.emit('videoCapture',  {'capturing':true, 'state': state.value, 'mobile': mobileConnected});
+                    emitter.emit('autopilotStateCircus', {'state': state.value})
+                    emitter.emit('videoCaptureCircus',  {'capturing':true, 'state': state.value, 'mobile': mobileConnected});
                 }
                 else if(stateAutopilot == "flying" && state.value == "flying"){
-                    emitter.emit('autopilotPosition',{'lat': lat, 'long': long});  
+                    emitter.emit('autopilotPositionCircus',{'lat': lat, 'long': long});  
                 }
                 else if(stateAutopilot == "returningHome" && state.value == "flying"){                            
                     state.value = "returning";
-                    emitter.emit('autopilotPosition',{'lat': lat, 'long': long});
-                    emitter.emit('autopilotState', {'state': state.value});
-                    emitter.emit('videoCapture',  {'capturing':false, 'state': state.value, 'mobile': mobileConnected});
+                    emitter.emit('autopilotPositionCircus',{'lat': lat, 'long': long});
+                    emitter.emit('autopilotStateCircus', {'state': state.value});
+                    emitter.emit('videoCaptureCircus',  {'capturing':false, 'state': state.value, 'mobile': mobileConnected});
                 }
                 else if(stateAutopilot == "returningHome" && state.value == "returning"){
-                    emitter.emit('autopilotPosition',{'lat': lat, 'long': long});
-                    emitter.emit('autopilotState', {'state': state.value});
+                    emitter.emit('autopilotPositionCircus',{'lat': lat, 'long': long});
+                    emitter.emit('autopilotStateCircus', {'state': state.value});
                 }
                 else if(stateAutopilot == "onHearth" && state.value == "returning"){
                     state.value = "onHearth";
-                    emitter.emit('autopilotState', {'state': state.value});
+                    emitter.emit('autopilotStateCircus', {'state': state.value});
                 }
             
         }

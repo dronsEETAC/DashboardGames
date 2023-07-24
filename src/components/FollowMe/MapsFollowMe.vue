@@ -21,18 +21,18 @@ export default {
         ChoosePlayerFollowMe
     },
 
-    setup (props, context) {
-
-        let state = "disconnected"
+    setup (props, context) {      
 
         let map;
         let popup = leaflet.popup();
         const emitter = inject('emitter');
-        let client = inject('mqttClient');
-        let droneLab = [[41.27643580, 1.98821960],[41.27619490, 1.98833760],[41.27636320, 1.98911820],[41.27658190, 1.98901760]];
-        let droneLabLimits = [[41.2762327, 1.9883584],[41.2764141, 1.9882706],[41.2765547, 1.9889887],[41.2763788, 1.9890692]]; //començo baix a l'esquerra, dalt esquerra, dalt dreta, baix dreta
-        let fixedPoints = [[41.2763486,1.9882531],[41.2764405, 1.9882089], [41.2765622,1.9888801],[41.2765925,1.9890236],[41.2764972,1.9890632],[41.2763632,1.9891322],[41.2762856,1.9887809],[41.2761835, 1.9883259]]
-        let fixedPointsMarkers = [];        
+        let client = inject('mqttClient');    
+        
+        // Variables d'estat
+        let state = "disconnected"
+        let canConnect = false;
+        
+        // Variables dibuix dron
         let drone;
         let northLine;
         let southLine;
@@ -54,8 +54,11 @@ export default {
         let eastLabel;
         let westLabel;
 
+        // Variables limits dronelab
+        
+        let droneLab = [[41.27643580, 1.98821960],[41.27619490, 1.98833760],[41.27636320, 1.98911820],[41.27658190, 1.98901760]];
+        let droneLabLimits = [[41.2762327, 1.9883584],[41.2764141, 1.9882706],[41.2765547, 1.9889887],[41.2763788, 1.9890692]]; //començo baix a l'esquerra, dalt esquerra, dalt dreta, baix dreta
         //recta 1: y = mx + n; 41.2762049 = m1.9883443 + n; 41.2764327= m1.9882290 + n; -0,0002278 = 0,0001153m; m = -1,9757155247181266261925; n = 37,34825779800520381613191;
-      
         let recta01m = (droneLabLimits[0][0]-droneLabLimits[1][0])/(droneLabLimits[0][1]-droneLabLimits[1][1]);
         let recta01n = droneLabLimits[0][0] - recta01m*droneLabLimits[0][1];
 
@@ -68,17 +71,20 @@ export default {
         let recta30m = (droneLabLimits[3][0]-droneLabLimits[0][0])/(droneLabLimits[3][1]-droneLabLimits[0][1]);
         let recta30n = droneLabLimits[3][0] - recta30m*droneLabLimits[3][1];
 
-        //let waypoints = [[41.2763088, 1.9882518],[41.2764448, 1.9882049],[41.2765214, 1.9886005],[41.2765960, 1.9890350],[41.2764952, 1.9890685],[41.2763571, 1.9891343],[41.2762735, 1.9887453],[41.2761858, 1.9883336],[41.2763692, 1.9885804],[41.2764201, 1.9892127],[41.2764861, 1.9880600],[41.2762412, 1.9885468]]
+        // Variables jugadors
+
         let waypoints = [];
         let players = [];        
         let playersMarkers = [];
         let playersTurn = ref("");
-
+        let fixedPoints = [[41.2763486,1.9882531],[41.2764405, 1.9882089], [41.2765622,1.9888801],[41.2765925,1.9890236],[41.2764972,1.9890632],[41.2763632,1.9891322],[41.2762856,1.9887809],[41.2761835, 1.9883259]]
+        let fixedPointsMarkers = [];    
         let choosingPlayer = ref(false);
         let indexPointChoosing = 0;
         let playersToBeAssigned = ref([]) 
-        let canConnect = false;
         let followingName;
+
+        // Intervals
         let intervalYourTurn;
         let intervalGoToWaypoint;
            
@@ -104,13 +110,13 @@ export default {
                 fixedPointsMarkers.push(leaflet.marker(fixedPoints[i]).on('click', onMarkerClick).addTo(map))
             }
 
-            emitter.on('newPlayer', (data) => {
+            emitter.on('newPlayerFollowMe', (data) => {
                 players.push({name: data, point: [], marker: undefined});
                 playersToBeAssigned.value.push(data);
             })          
 
             // quan no tenim gps
-            emitter.on('playerChosen', (data) => {                
+            emitter.on('playerChosenFollowMe', (data) => {                
                 for(let i = 0; i<players.length; i++){
                     if(players[i].name == data.player){
                         players[i].point = fixedPoints[indexPointChoosing];
@@ -179,7 +185,7 @@ export default {
                     for(let i = 0; i <players.length; i++){
                         if(players[i].name == message.toString()){
                             goToPoint(i)
-                            emitter.emit('following', message.toString())
+                            emitter.emit('followingFollowMe', message.toString())
                             followingName = message.toString();
                             clearInterval(intervalYourTurn);
                         }
@@ -372,30 +378,7 @@ export default {
                 client.publish('dashboardFollowme/autopilotService/goToWaypoint',JSON.stringify(waypointJSON)) 
                 resendGoToWaypoint(JSON.stringify(waypointJSON));               
             }
-        } 
-
-        function updatePoint(username,waypoint){
-            for(let i = 0; i < players.length; i++){
-                if(username == players[i].name){
-                    players[i].point = waypoint;                        
-                    paintPoint(i);
-                }
-                
-            }
-            
-            
-        }
-
-        function paintPoint(index){
-            if(players[index].marker == undefined){
-                players[index].marker = leaflet.marker(players[index].point).addTo(map).bindTooltip(players[index].name, {direction: 'center', permanent: true})
-            }
-            else{
-                players[index].marker.remove(map);
-                players[index].marker = leaflet.marker(players[index].point).addTo(map).bindTooltip(players[index].name, {direction: 'center', permanent: true})
-            }            
-            
-        }
+        }         
 
         function onMarkerClick(e){
             let found = false;
@@ -477,6 +460,29 @@ export default {
                 }               
                 
             }, 1000);
+        }
+
+        function updatePoint(username,waypoint){
+            for(let i = 0; i < players.length; i++){
+                if(username == players[i].name){
+                    players[i].point = waypoint;                        
+                    paintPoint(i);
+                }
+                
+            }
+            
+            
+        }
+
+        function paintPoint(index){
+            if(players[index].marker == undefined){
+                players[index].marker = leaflet.marker(players[index].point).addTo(map).bindTooltip(players[index].name, {direction: 'center', permanent: true})
+            }
+            else{
+                players[index].marker.remove(map);
+                players[index].marker = leaflet.marker(players[index].point).addTo(map).bindTooltip(players[index].name, {direction: 'center', permanent: true})
+            }            
+            
         }
 
         return {

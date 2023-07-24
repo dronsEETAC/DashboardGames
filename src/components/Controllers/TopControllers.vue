@@ -73,7 +73,7 @@ export default defineComponent({
                     players.value.push(username);
                     numPlayers = numPlayers + 1;
                     if(numPlayers == parseInt(maxPlayers.value)){
-                        emitter.emit('players', {'players': players.value});          
+                        emitter.emit('playersControllers', {'players': players.value});          
                     }
                     return "ok"
                 } 
@@ -84,7 +84,6 @@ export default defineComponent({
             else{
                 return "error"
             }              
-            
         }
 
         function inputNumberPlayers(){

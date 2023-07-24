@@ -59,7 +59,7 @@ export default defineComponent({
         const emitter = inject('emitter');
                 
         function select(value){
-            emitter.emit('scenarioSelected', {'scenario':value}); // objecte json
+            emitter.emit('scenarioSelectedControllers', {'scenario':value}); // objecte json
             context.emit('close')
         }   
 

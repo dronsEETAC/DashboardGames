@@ -78,7 +78,7 @@ export default defineComponent({
         
         let state = "idle";
 
-        emitter.on('autopilotState', (data) => {
+        emitter.on('autopilotStateCircus', (data) => {
             if(data.state == "connected"){
                 connectColor.value = "#61AE4A";
                 connectText.value = "Disconnect";
@@ -114,20 +114,20 @@ export default defineComponent({
             }
         })
 
-        emitter.on('selectedDevice', (data) => {
+        emitter.on('selectedDeviceCircus', (data) => {
             if(data.device == 'mobile'){
                 mobileMode.value = true;
             }
         })
 
-        emitter.on('mobileState', (data) => {
+        emitter.on('mobileStateCircus', (data) => {
             if(data.state == 'connected'){
                 mobileConnectedColor.value = "#61AE4A";
                 mobileConnectedText.value = "Mobile Connected"
             }
         })
 
-        emitter.on('finishPractice', (data) => {
+        emitter.on('finishPracticeCircus', (data) => {
             state = "disconnected";
             showingFlyingButtons.value = true;
             practiceColor.value = "gray";
@@ -137,7 +137,7 @@ export default defineComponent({
         
         function close(){
             context.emit('close'); // el context es passa com a parametre del setup
-            emitter.emit('videoCapture', {'capturing':false})            
+            emitter.emit('videoCaptureCircus', {'capturing':false})            
         }
 
         function easyClicked(){
@@ -147,7 +147,7 @@ export default defineComponent({
             easyColor.value = "#61AE4A";
             difficultySelected.value = true;
             selectScenarioDisabled.value = false;
-            emitter.emit('difficulty',{'level':'easy'});
+            emitter.emit('difficultyCircus',{'level':'easy'});
         }
 
         function difficultClicked(){
@@ -157,7 +157,7 @@ export default defineComponent({
             difficultColor.value = "#61AE4A";
             difficultySelected.value = true;
             selectScenarioDisabled.value = false;
-            emitter.emit('difficulty', {'level':'difficult'});
+            emitter.emit('difficultyCircus', {'level':'difficult'});
         }
 
         function selectScenarioClicked(){            

@@ -220,7 +220,7 @@ export default defineComponent({
 
            paintDrone();
            
-           emitter.on('videoCapture', (cap) => {
+           emitter.on('videoCaptureCircus', (cap) => {
                 if(cap.capturing && cap.state !="flying"){
                     startMoving();
                 }
@@ -230,7 +230,7 @@ export default defineComponent({
                 state = cap.state;
             });
 
-            emitter.on ('selectedLevel', (data) => {
+            emitter.on ('selectedLevelCircus', (data) => {
                 selectedLevel = data.level;                
                 if(selectedLevel=="Medio"){
                     let obstacle1Polygon = leaflet.polygon(obstacle1, {color: 'blue'}).addTo(map);
@@ -242,7 +242,7 @@ export default defineComponent({
                 }                                   
             })
 
-            emitter.on('autopilotPosition', (data) => {
+            emitter.on('autopilotPositionCircus', (data) => {
                 practicePointLat = data.lat;
                 practicePointLong = data.long;
                 practicePoint = [practicePointLat, practicePointLong];
@@ -253,21 +253,21 @@ export default defineComponent({
                 console.log(topic)
                 if (topic=="imageService/droneCircusWebApp/code" && state == "practising"){
                     setDirection(message);
-                    emitter.emit('direction', {'direction': direction});
+                    emitter.emit('directionCircus', {'direction': direction});
                     movePoint(); // crec que s'ha de treure
                 }
                 else if (topic=="imageService/mobileApp/code" && state == "practising"){
                     setDirection(message);
-                    emitter.emit('direction', {'direction': direction});
+                    emitter.emit('directionCircus', {'direction': direction});
                     movePoint(); // crec que s'ha de treure
                 }
                 else if(topic=="imageService/droneCircusWebApp/code" && state == "flying"){
                     setDirection(message);
-                    emitter.emit('direction', {'direction': direction});
+                    emitter.emit('directionCircus', {'direction': direction});
                 }
                 else if(topic=="imageService/mobileApp/code" && state == "flying"){
                     setDirection(message);
-                    emitter.emit('direction', {'direction': direction});
+                    emitter.emit('directionCircus', {'direction': direction});
                 }
            })
            

@@ -5,14 +5,14 @@
           <h2 style="margin-top: 5%; margin-bottom: 5%;">What game do you want to play?</h2>
         </div>
         <div v-if = "!connected" class="row">
+          <b-button style="margin-bottom: 3%; height: 100px; font-size: large;" @click = "toggle('circus')" variant="success">Drone Circus Game</b-button>
+        </div>  
+        <div v-if = "!connected" class="row">
           <b-button style="margin-bottom: 3%; height: 100px; font-size: large;" @click = "toggle('controllers')" variant="success">Controllers Game</b-button>
         </div>
         <div v-if = "!connected" class="row">
           <b-button style="margin-bottom: 3%; height: 100px; font-size: large;" @click = "toggle('followme')" variant="success">Follow Me Game</b-button>
-        </div>   
-        <div v-if = "!connected" class="row">
-          <b-button style="margin-bottom: 3%; height: 100px; font-size: large;" @click = "toggle('circus')" variant="success">Drone Circus Game</b-button>
-        </div>  
+        </div> 
         <div v-if = "connected" class="row">
           <b-button style="width:900px; margin-bottom:2%; margin-left: 8%" @click = "toggle('home')" variant="danger">Exit</b-button>
         </div>
@@ -46,7 +46,6 @@
     setup () {
       let connected = ref(false);
       const emitter = inject('emitter');
-      let waypoints = [[41.2762634, 1.9887789],[41.2765063, 1.9884315],[41.2763148, 1.9882317],[41.2763632, 1.9891490]]
       let mode = ref('home')
   
       function toggle (game) {

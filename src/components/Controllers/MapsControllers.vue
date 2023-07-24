@@ -40,25 +40,27 @@ export default {
     },
 
     setup (props, context) {
-
-        let map;
-        let count = 0;
-        let waypoints = ref([]);
-        let popup = leaflet.popup();
-        let tmpLine = undefined;
-        let players = ref([]);
+       
         const emitter = inject('emitter');
         let client = inject('mqttClient');
-        let tmpLineClick = undefined;
-        let actualPlayer = ref(0);
-        let droneLabLimits = [[41.27643580, 1.98821960],[41.27619490, 1.98833760],[41.27636320, 1.98911820],[41.27658190, 1.98901760]];
-        //let droneLabLimits = [[41.2764151, 1.9882914],[41.2762170, 1.9883551],[41.2763733, 1.9890491],[41.2765582, 1.9889881]];
+        
+        //Map painting Variables
+        let map;
+        let popup = leaflet.popup();
+        let tmpLine = undefined;
+        let tmpLineClick = undefined; 
+        let waypoints = ref([]);
         let playersPolygons = [];
         let playersPolygonsCoord = [];
         let showTitle = ref(false);
         let waypointsCoord = [];
         let sectorsLines = [];
         let playerColors = ['blue', 'red', 'green', 'yellow'];
+
+        // State Variables
+        let count = 0;
+        let players = ref([]);
+        let actualPlayer = ref(0);
         let buttonsDisabled = ref(true);
         let buttonFinishDisabled = ref(true);
         let nextPlayerDisabled = ref(true);
@@ -78,6 +80,7 @@ export default {
         let interval;
         let direction;
 
+        // Drone Painting Variables
         let drone;
         let northLine;
         let southLine;
@@ -98,7 +101,12 @@ export default {
         let southLabel;
         let eastLabel;
         let westLabel;
+
+        //Scenario Variables
         let finalBasePolygon;
+
+        let droneLabLimits = [[41.27643580, 1.98821960],[41.27619490, 1.98833760],[41.27636320, 1.98911820],[41.27658190, 1.98901760]];
+        //let droneLabLimits = [[41.2764151, 1.9882914],[41.2762170, 1.9883551],[41.2763733, 1.9890491],[41.2765582, 1.9889881]];
 
         let scenario4p1 = [[[[41.2763662, 1.9891155],[41.2764831, 1.9890632],[41.2764156, 1.9886917],[41.2762886, 1.9887453]]], //player 1
                         [[[41.2764831, 1.9890632],[41.2764156, 1.9886917],[41.2765134, 1.9886555],[41.2765769, 1.9890149]]], //player 2
@@ -157,7 +165,7 @@ export default {
             paintDrone();
             finalBasePolygon = leaflet.polygon(finalBase, {color: '#D301F9', fillColor: '#D301F9', fillOpacity: 0.5}).addTo(map);
 
-            emitter.on('players', (data) => {
+            emitter.on('playersControllers', (data) => {
                 players.value = data.players;
                 numPlayers.value = players.value.length;
                 showTitle.value = true;
@@ -166,7 +174,7 @@ export default {
                 createScenarioButtonDisabled.value = false;
             })
 
-            emitter.on('scenarioSelected', (data) => {
+            emitter.on('scenarioSelectedControllers', (data) => {
                 scenario = data.scenario;
                 paintScenario();                
                 selectScenarioButtonDisabled.value = true;
@@ -237,31 +245,7 @@ export default {
             })
         })
 
-        function paintDrone(){
-            quitDronePainting();
-            
-            drone = leaflet.circle(practicePoint, 0.8, {stroke: false, fill: true, fillColor: "red", fillOpacity: 1}).addTo(map);
-            northPoint = [practicePointLat + 0.00003, practicePointLong + 0];
-            southPoint = [practicePointLat - 0.00003, practicePointLong + 0];
-            eastPoint = [practicePointLat + 0, practicePointLong + 0.00004];
-            westPoint = [practicePointLat + 0, practicePointLong - 0.00004];
-            northLine = leaflet.polyline([practicePoint, northPoint], {color: 'red'}).addTo(map);
-            southLine = leaflet.polyline([practicePoint, southPoint], {color: 'red'}).addTo(map);
-            eastLine = leaflet.polyline([practicePoint, eastPoint], {color: 'red'}).addTo(map);
-            westLine = leaflet.polyline([practicePoint, westPoint], {color: 'red'}).addTo(map);
-            northLabel = leaflet.marker( northPoint, {
-                icon: northIcon
-            }).addTo(map);
-            southLabel = leaflet.marker( southPoint, {
-                icon: southIcon
-            }).addTo(map);
-            eastLabel = leaflet.marker( eastPoint, {
-                icon: eastIcon
-            }).addTo(map);
-            westLabel = leaflet.marker( westPoint, {
-                icon: westIcon
-            }).addTo(map);
-       }
+        
 
         function onMapClick(e){       
             console.log(actualPlayer.value)
@@ -367,6 +351,34 @@ export default {
             leaflet.polygon(droneLabLimits, {color: 'white'}).addTo(map);
         }
 
+        function nextPlayer(){
+            actualPlayer.value = actualPlayer.value + 1;            
+            playersPolygonsCoord.push(actualPlayerPolygon);
+            nextPlayerDisabled.value = true;            
+            if(actualPlayer.value == numPlayers.value-1){
+                actualPlayerPolygon = [droneLabLimits];                
+                for(let i = 0; i<numPlayers.value-1; i++){                                
+                    for(let j = 0; j<playersPolygonsCoord[i].length ; j++){
+                        actualPlayerPolygon.push(playersPolygonsCoord[i][j])    
+                    }
+                }
+                playersPolygonsCoord.push(actualPlayerPolygon);
+                playersPolygons.push(leaflet.polygon(playersPolygonsCoord[numPlayers.value-1], {color: playerColors[actualPlayer.value]}).addTo(map));
+                for(let i = 0; i<numPlayers.value-1; i++){
+                    playersPolygons.push(leaflet.polygon(playersPolygonsCoord[i], {color: playerColors[i]}).addTo(map));
+                }
+                finalBasePolygon.remove(map);
+                leaflet.polygon(finalBase, {color: '#D301F9', fillColor: '#D301F9', fillOpacity: 0.5}).addTo(map);               
+                buttonFinishDisabled.value = false;
+                Swal.fire('Sector set for player: '+players.value[actualPlayer.value]);   
+            }
+            else{
+                Swal.fire('Set sectors for player: '+players.value[actualPlayer.value]);   
+            }              
+
+            actualPlayerPolygon = [];
+        }
+
         function save(){
 
             Swal.fire({
@@ -425,6 +437,60 @@ export default {
             return JSON.stringify(sectorJSON)
         }
 
+        function selectScenario(){
+            createScenarioButtonDisabled.value = true;
+            scenariosShowing.value = true;
+        }
+
+        function createScenario(){
+            creatingScenario.value = true;
+            selectScenarioButtonDisabled.value = true;
+            Swal.fire('Set sectors for player: '+players.value[actualPlayer.value]);
+        }
+
+        function paintScenario(){
+            if(numPlayers.value == 4){
+                if(scenario == '1'){
+                    playersPolygonsCoord = Array.from(scenario4p1);
+                }
+                else if(scenario == '2'){
+                    playersPolygonsCoord = Array.from(scenario4p2);
+                }   
+                else{
+                    playersPolygonsCoord = Array.from(scenario4p3);
+                }
+            }
+            else if(numPlayers.value == 3){
+                if(scenario == '1'){
+                    playersPolygonsCoord = Array.from(scenario3p1);
+                }
+                else if(scenario == '2'){
+                    playersPolygonsCoord = Array.from(scenario3p2);
+                }   
+                else{
+                    playersPolygonsCoord = Array.from(scenario3p3);
+                }
+            }
+            else if(numPlayers.value == 2){
+                if(scenario == '1'){
+                    playersPolygonsCoord = Array.from(scenario2p1);
+                }
+                else if(scenario == '2'){
+                    playersPolygonsCoord = Array.from(scenario2p2);
+                }   
+                else{
+                    playersPolygonsCoord = Array.from(scenario2p3);
+                }
+            }
+                     
+            for(let i = 0; i<numPlayers.value; i++){
+                playersPolygons.push(leaflet.polygon(playersPolygonsCoord[i], {color: playerColors[i]}).addTo(map));
+            } 
+            finalBasePolygon.remove(map);
+            leaflet.polygon(finalBase, {color: '#D301F9', fillColor: '#D301F9', fillOpacity: 0.5}).addTo(map);
+            buttonFinishDisabled.value = false;
+        }
+
         function inside(point, vs) {
             // ray-casting algorithm
             
@@ -476,86 +542,33 @@ export default {
             return intersecting
         }
 
-        function nextPlayer(){
-            actualPlayer.value = actualPlayer.value + 1;            
-            playersPolygonsCoord.push(actualPlayerPolygon);
-            nextPlayerDisabled.value = true;            
-            if(actualPlayer.value == numPlayers.value-1){
-                actualPlayerPolygon = [droneLabLimits];                
-                for(let i = 0; i<numPlayers.value-1; i++){                                
-                    for(let j = 0; j<playersPolygonsCoord[i].length ; j++){
-                        actualPlayerPolygon.push(playersPolygonsCoord[i][j])    
-                    }
-                }
-                playersPolygonsCoord.push(actualPlayerPolygon);
-                playersPolygons.push(leaflet.polygon(playersPolygonsCoord[numPlayers.value-1], {color: playerColors[actualPlayer.value]}).addTo(map));
-                for(let i = 0; i<numPlayers.value-1; i++){
-                    playersPolygons.push(leaflet.polygon(playersPolygonsCoord[i], {color: playerColors[i]}).addTo(map));
-                }
-                finalBasePolygon.remove(map);
-                leaflet.polygon(finalBase, {color: '#D301F9', fillColor: '#D301F9', fillOpacity: 0.5}).addTo(map);               
-                buttonFinishDisabled.value = false;
-                Swal.fire('Sector set for player: '+players.value[actualPlayer.value]);   
-            }
-            else{
-                Swal.fire('Set sectors for player: '+players.value[actualPlayer.value]);   
-            }              
-
-            actualPlayerPolygon = [];
-        }
-
-        function selectScenario(){
-            createScenarioButtonDisabled.value = true;
-            scenariosShowing.value = true;
-        }
-
-        function createScenario(){
-            creatingScenario.value = true;
-            selectScenarioButtonDisabled.value = true;
-        }
-
-        function paintScenario(){
-            if(numPlayers.value == 4){
-                if(scenario == '1'){
-                    playersPolygonsCoord = Array.from(scenario4p1);
-                }
-                else if(scenario == '2'){
-                    playersPolygonsCoord = Array.from(scenario4p2);
-                }   
-                else{
-                    playersPolygonsCoord = Array.from(scenario4p3);
-                }
-            }
-            else if(numPlayers.value == 3){
-                if(scenario == '1'){
-                    playersPolygonsCoord = Array.from(scenario3p1);
-                }
-                else if(scenario == '2'){
-                    playersPolygonsCoord = Array.from(scenario3p2);
-                }   
-                else{
-                    playersPolygonsCoord = Array.from(scenario3p3);
-                }
-            }
-            else if(numPlayers.value == 2){
-                if(scenario == '1'){
-                    playersPolygonsCoord = Array.from(scenario2p1);
-                }
-                else if(scenario == '2'){
-                    playersPolygonsCoord = Array.from(scenario2p2);
-                }   
-                else{
-                    playersPolygonsCoord = Array.from(scenario2p3);
-                }
-            }
-                     
-            for(let i = 0; i<numPlayers.value; i++){
-                playersPolygons.push(leaflet.polygon(playersPolygonsCoord[i], {color: playerColors[i]}).addTo(map));
-            } 
-            finalBasePolygon.remove(map);
-            leaflet.polygon(finalBase, {color: '#D301F9', fillColor: '#D301F9', fillOpacity: 0.5}).addTo(map);
-            buttonFinishDisabled.value = false;
-        }
+        
+        function paintDrone(){
+            quitDronePainting();
+            
+            drone = leaflet.circle(practicePoint, 0.8, {stroke: false, fill: true, fillColor: "red", fillOpacity: 1}).addTo(map);
+            northPoint = [practicePointLat + 0.00003, practicePointLong + 0];
+            southPoint = [practicePointLat - 0.00003, practicePointLong + 0];
+            eastPoint = [practicePointLat + 0, practicePointLong + 0.00004];
+            westPoint = [practicePointLat + 0, practicePointLong - 0.00004];
+            northLine = leaflet.polyline([practicePoint, northPoint], {color: 'red'}).addTo(map);
+            southLine = leaflet.polyline([practicePoint, southPoint], {color: 'red'}).addTo(map);
+            eastLine = leaflet.polyline([practicePoint, eastPoint], {color: 'red'}).addTo(map);
+            westLine = leaflet.polyline([practicePoint, westPoint], {color: 'red'}).addTo(map);
+            northLabel = leaflet.marker( northPoint, {
+                icon: northIcon
+            }).addTo(map);
+            southLabel = leaflet.marker( southPoint, {
+                icon: southIcon
+            }).addTo(map);
+            eastLabel = leaflet.marker( eastPoint, {
+                icon: eastIcon
+            }).addTo(map);
+            westLabel = leaflet.marker( westPoint, {
+                icon: westIcon
+            }).addTo(map);
+       }
+        
 
         function startMoving(){
             interval = setInterval(() => {
@@ -634,15 +647,7 @@ export default {
                 client.publish("dashboardControllers/mobileApp/position", messageJSON)
             }
             
-       }
-
-       function finishPractice(){
-        stopMoving();
-        finishPracticeButtonShowing.value = false;
-        startFlyingButtonShowing.value = true;
-        client.publish('dashboardControllers/mobileApp/finishPractice','');        
-        quitDronePainting();
-       }
+       }       
 
        function quitDronePainting(){
         if(drone!=undefined){
@@ -672,6 +677,14 @@ export default {
         if(westLabel!=undefined){
             westLabel.remove(map);
         }
+       }
+
+       function finishPractice(){
+        stopMoving();
+        finishPracticeButtonShowing.value = false;
+        startFlyingButtonShowing.value = true;
+        client.publish('dashboardControllers/mobileApp/finishPractice','');        
+        quitDronePainting();
        }
 
        function startFlying(){
