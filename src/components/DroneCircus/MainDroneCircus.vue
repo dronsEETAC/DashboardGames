@@ -84,7 +84,7 @@ export default defineComponent({
             connectionMode.value = data.mode;
             let external_broker_address;         
             if(connectionMode.value == "Global"){
-                external_broker_address = "broker.hivemq.com"                
+                external_broker_address = "classpip.upc.edu"                
             }
             else if(connectionMode.value == "Local"){
                 external_broker_address = "10.10.10.1"
@@ -182,6 +182,19 @@ export default defineComponent({
                 }
                 else if(external_broker_address == 'broker.hivemq.com'){
                     clientAutopilot = mqtt.connect('ws://'+external_broker_address+':'+port+'/mqtt') //proba a connectar-se
+                }
+                else if(external_broker_address == 'classpip.upc.edu'){
+                    clientAutopilot = mqtt.connect('ws://'+external_broker_address+':'+port+'/mqtt', {
+                        clean: false,
+                        keepalive: 60,
+                        clientId: "dashboardGames2",
+                        connectTimeout: 4000,
+                        username: 'dronsEETAC',
+                        password: 'mimara1456.'
+                    })
+                }
+                else{
+                    clientAutopilot = mqtt.connect('mqtt://'+external_broker_address+':'+port)
                 }                
                 clientAutopilot.on('connect', () => { //si el commando que rep es 'connect', s'ha connectat bé
                     console.log("Connection autopilot succeeded!");
