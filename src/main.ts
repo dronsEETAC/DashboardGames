@@ -42,7 +42,7 @@ app.provide('emitter', emitter);          // permet a tots els components accedi
 
 let client: MqttClient
 try{
-     client = mqtt.connect('ws://classpip.upc.edu:8000/mqtt',{
+     client = mqtt.connect('wss://classpip.upc.edu:8883/mqtt',{
         clean: false,
         keepalive: 60,
         clientId: "dashboardGames",
