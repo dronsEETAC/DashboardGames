@@ -1,4 +1,4 @@
-# Dashboard for Controllers Application
+# Dashboard Games
 
 ## Project setup
 ```
