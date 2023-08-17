@@ -62,6 +62,7 @@ When entering this game, the corresponding dashboard will be shown, which has a 
 When more than two players are connected you can start assigning positions for each one by clicking on the marks of the map. When all players are assigned a position, you can connect to the Autopilot Service and arm and take off the drone.
 
 Then the game starts and it is the first player turn to say the name of another player. When the drone goes to that player and takes a photo, the photo will be displayed at the bottom of the dashboard. And the game will go on like this until the button "Return Home" is clicked.
+
 <img width="481" alt="Captura de pantalla 2023-07-21 155804" src="https://github.com/JoanaOP/DashboardGames/assets/73441184/b48d55c4-ab9f-4c6f-a992-6615e7cd37a0">
 
 
