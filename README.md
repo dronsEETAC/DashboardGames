@@ -31,17 +31,27 @@ As this application goes along with the Mobile App, you must have that app runni
 
 When you enter to this game a screen showing all the game modes is shown and you can choose. Note that only two of the four modes are fully implemented so you can only choose "Fingers" or "Poses". 
 
+<img width="770" alt="Captura de pantalla 2023-07-26 124021" src="https://github.com/JoanaOP/DashboardGames/assets/73441184/f36441e8-e322-4f24-a215-c62b7d301f87">
+
 Then you enter to the main page where you can choose the device from where to open the camre, the difficulty level and the scenario to play. If you choose the camera of the computer, it will start recording you so you can practice the movements you will do and see how the drone will move. 
+
+<img width="833" alt="Captura de pantalla 2023-07-26 125122" src="https://github.com/JoanaOP/DashboardGames/assets/73441184/0bc8e493-f655-44ce-a468-1a4ec5dc0068">
 
 If the device chosen is the mobile, a button indicating the state of the mobile appears, once the mobile is connected you will be able to start the practice.
 
 When you are done with the practice you can stop it and connect to the Autopilot Service. Once connected you will be able to arm and take off the drone. From here it is your mission to guide the drone as you please and have fun. Once you are done, you can land the dron by clicking the "Return Home" button.
 
+<img width="821" alt="Captura de pantalla 2023-07-26 125348" src="https://github.com/JoanaOP/DashboardGames/assets/73441184/f7882294-5b29-43b8-9c59-57688aa5a1cf">
+
 ### Controllers Game
 
 After clicking this game the dashboard for the game is shown. In here you can see a top component to see the players connected and a map. First of all you must introduce the number of the players and wait until all of them are connected from their mobiles.
 
+<img width="367" alt="Captura de pantalla 2023-08-17 131114" src="https://github.com/JoanaOP/DashboardGames/assets/73441184/1920e432-c1cc-4bca-9b4f-73defb735a5a">
+
 Then you can choose two ways of assigning sectors to each player, choosing one of the predefined scenarios or creating you own scenario by drawing the sectors on the map. Once the sectors are defined, you can start the practice. In here, the movement of the drone is simulated so the players practice controlling the drone and planning what to do to reach the final base, which will be painted in pink.
+
+<img width="357" alt="Captura de pantalla 2023-08-17 131145" src="https://github.com/JoanaOP/DashboardGames/assets/73441184/150de5b3-92a3-4de9-9561-a8cbc4887dc3">
 
 Once the practice finishes, you can connect to the Autopilot Service and then arm and take off the drone. From here it will be the players responsability to reach the final base. If you want to land the drone, you can click the "Return Home" button.
 
@@ -52,4 +62,7 @@ When entering this game, the corresponding dashboard will be shown, which has a 
 When more than two players are connected you can start assigning positions for each one by clicking on the marks of the map. When all players are assigned a position, you can connect to the Autopilot Service and arm and take off the drone.
 
 Then the game starts and it is the first player turn to say the name of another player. When the drone goes to that player and takes a photo, the photo will be displayed at the bottom of the dashboard. And the game will go on like this until the button "Return Home" is clicked.
+<img width="481" alt="Captura de pantalla 2023-07-21 155804" src="https://github.com/JoanaOP/DashboardGames/assets/73441184/b48d55c4-ab9f-4c6f-a992-6615e7cd37a0">
+
+
 
