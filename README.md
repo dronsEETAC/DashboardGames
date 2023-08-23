@@ -33,7 +33,7 @@ When you enter to this game a screen showing all the game modes is shown and you
 
 <img width="770" alt="Captura de pantalla 2023-07-26 124021" src="https://github.com/JoanaOP/DashboardGames/assets/73441184/f36441e8-e322-4f24-a215-c62b7d301f87">
 
-Then you enter to the main page where you can choose the device from where to open the camre, the difficulty level and the scenario to play. If you choose the camera of the computer, it will start recording you so you can practice the movements you will do and see how the drone will move. 
+Then you enter to the main page where you can choose the device from where to open the camera, the difficulty level and the scenario to play. If you choose the camera of the computer, it will start recording you so you can practice the movements you will do and see how the drone will move. 
 
 <img width="833" alt="Captura de pantalla 2023-07-26 125122" src="https://github.com/JoanaOP/DashboardGames/assets/73441184/0bc8e493-f655-44ce-a468-1a4ec5dc0068">
 
