@@ -67,7 +67,7 @@ Then the game starts and it is the first player turn to say the name of another 
 
 ## Code
 Have a look to the code here: Dashboard Code
-[Dashboard Code](https://youtu.be/hAtsUjoCelU)https://youtu.be/hAtsUjoCelU)
+[Dashboard Code](https://youtu.be/hAtsUjoCelU)
 
 
 
