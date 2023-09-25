@@ -66,7 +66,7 @@ Then the game starts and it is the first player turn to say the name of another 
 <img width="481" alt="Captura de pantalla 2023-07-21 155804" src="https://github.com/JoanaOP/DashboardGames/assets/73441184/b48d55c4-ab9f-4c6f-a992-6615e7cd37a0">
 
 ## Code
-Have a look to the code here: Dashboard Code
+Have a look to the code here: 
 [Dashboard Code](https://youtu.be/hAtsUjoCelU)
 
 
