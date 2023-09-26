@@ -43,6 +43,10 @@ When you are done with the practice you can stop it and connect to the Autopilot
 
 <img width="821" alt="Captura de pantalla 2023-07-26 125348" src="https://github.com/JoanaOP/DashboardGames/assets/73441184/f7882294-5b29-43b8-9c59-57688aa5a1cf">
 
+### Demo
+Have a look to the demo here: 
+[Drone Circus demo](https://youtu.be/dd4ezG6JVHc)
+
 ### Controllers Game
 
 After clicking this game the dashboard for the game is shown. In here you can see a top component to see the players connected and a map. First of all you must introduce the number of the players and wait until all of them are connected from their mobiles.
@@ -53,7 +57,11 @@ Then you can choose two ways of assigning sectors to each player, choosing one o
 
 <img width="357" alt="Captura de pantalla 2023-08-17 131145" src="https://github.com/JoanaOP/DashboardGames/assets/73441184/150de5b3-92a3-4de9-9561-a8cbc4887dc3">
 
-Once the practice finishes, you can connect to the Autopilot Service and then arm and take off the drone. From here it will be the players responsability to reach the final base. If you want to land the drone, you can click the "Return Home" button.
+Once the practice finishes, you can connect to the Autopilot Service and then arm and take off the drone. From here it will be the players responsability to reach the final base. If you want to land the drone, you can click the "Return Home" button.   
+
+### Demo
+Have a look to the demo here: 
+[Controllers Game demo](https://youtu.be/AsAvQm1oCuE)
 
 ### Follow Me Game
 
@@ -63,7 +71,11 @@ When more than two players are connected you can start assigning positions for e
 
 Then the game starts and it is the first player turn to say the name of another player. When the drone goes to that player and takes a photo, the photo will be displayed at the bottom of the dashboard. And the game will go on like this until the button "Return Home" is clicked.
 
-<img width="481" alt="Captura de pantalla 2023-07-21 155804" src="https://github.com/JoanaOP/DashboardGames/assets/73441184/b48d55c4-ab9f-4c6f-a992-6615e7cd37a0">
+<img width="481" alt="Captura de pantalla 2023-07-21 155804" src="https://github.com/JoanaOP/DashboardGames/assets/73441184/b48d55c4-ab9f-4c6f-a992-6615e7cd37a0">   
+
+### Demo
+Have a look to the demo here: 
+[Follow Me demo](https://youtu.be/Bv_-wKKmF0E)
 
 ## Code
 Have a look to the code here: 
