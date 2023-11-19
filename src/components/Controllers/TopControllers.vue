@@ -89,6 +89,8 @@ export default defineComponent({
         function inputNumberPlayers(){
             if(parseInt(maxPlayers.value) <= 4 && parseInt(maxPlayers.value) >= 2){
                 maxPlayersChosen.value = true;
+                players.value = [];
+                numPlayers = 0;
             }
             else{
                 Swal.fire("Write the number of players between 2 and 4");
